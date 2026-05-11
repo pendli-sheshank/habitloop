@@ -1,30 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as Location from 'expo-location';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/services/firebase';
 import { useUserStore } from '@/stores/user/useUserStore';
 import { useWaterStore } from '@/stores/water/useWaterStore';
 import { calculateWaterGoal } from '@/services/water/hydrationGoal';
 import { fetchWeather, getCachedWeather } from '@/services/water/weatherApi';
-import { updateUserSettings } from '@/services/auth/profileService';
+import { loadUserSettings, updateUserSettings } from '@/services/auth/profileService';
 import type { WeatherData } from '@/types/water';
-import type { UserSettings } from '@/types/auth';
 
 interface HydrationGoalState {
   goalMl: number;
   weather: WeatherData | null;
   isLoading: boolean;
   refreshGoal: () => Promise<void>;
-}
-
-async function loadUserSettings(uid: string): Promise<UserSettings | null> {
-  try {
-    const snap = await getDoc(doc(db, 'users', uid, 'settings', 'data'));
-    return snap.exists() ? (snap.data() as UserSettings) : null;
-  } catch (e) {
-    console.error('[useHydrationGoal] Failed to load settings:', e);
-    return null;
-  }
 }
 
 async function getLocationCoords(): Promise<{ latitude: number; longitude: number } | null> {

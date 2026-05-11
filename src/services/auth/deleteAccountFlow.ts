@@ -1,9 +1,13 @@
-import * as Notifications from 'expo-notifications';
 import { deleteAccount } from '@/services/auth/authService';
 import { useUserStore } from '@/stores/user/useUserStore';
 
 export async function cancelAllNotifications(): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  try {
+    const Notifications = await import('expo-notifications');
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch {
+    // expo-notifications not available in Expo Go — safe to skip
+  }
 }
 
 /**

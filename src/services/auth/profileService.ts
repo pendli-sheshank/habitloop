@@ -143,6 +143,16 @@ export async function completeOnboarding(uid: string, data: OnboardingData): Pro
   await batch.commit();
 }
 
+export async function loadUserSettings(uid: string): Promise<UserSettings | null> {
+  try {
+    const snap = await getDoc(doc(db, 'users', uid, 'settings', 'data'));
+    return snap.exists() ? (snap.data() as UserSettings) : null;
+  } catch (e) {
+    console.error('[profileService] loadUserSettings failed:', e);
+    return null;
+  }
+}
+
 export async function updateUserSettings(
   uid: string,
   updates: Partial<UserSettings>

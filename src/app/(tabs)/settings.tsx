@@ -2,15 +2,13 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, ScrollView, View, Alert } from 'react-native';
 import { Text, TextInput, Button, Switch, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { doc, getDoc } from 'firebase/firestore';
 
-import { db } from '@/services/firebase';
 import { AppColors, AppSpacing, AppFontSize, AppRadius } from '@/constants/theme';
 import { useUserStore } from '@/stores/user/useUserStore';
 import { useFastingStore } from '@/stores/fasting/useFastingStore';
 import { useWaterStore } from '@/stores/water/useWaterStore';
 import { signOutUser } from '@/services/auth/authService';
-import { updateUserSettings } from '@/services/auth/profileService';
+import { loadUserSettings, updateUserSettings } from '@/services/auth/profileService';
 import { calculateWaterGoal } from '@/services/water/hydrationGoal';
 import { PROTOCOL_OPTIONS } from '@/constants/protocols';
 import { DeleteAccountDialog } from '@/components/DeleteAccountDialog';
@@ -64,11 +62,10 @@ export default function SettingsScreen() {
   useEffect(() => {
     if (!user) return;
 
-    async function loadSettings() {
+    async function fetchSettings() {
       try {
-        const snap = await getDoc(doc(db, 'users', user!.uid, 'settings', 'data'));
-        if (snap.exists()) {
-          const data = snap.data() as UserSettings;
+        const data = await loadUserSettings(user!.uid);
+        if (data) {
           setSettings(data);
           setWeightKg(String(data.weightKg));
           setActivityLevel(data.activityLevel);
@@ -81,7 +78,7 @@ export default function SettingsScreen() {
       }
     }
 
-    loadSettings();
+    fetchSettings();
   }, [user]);
 
   const handleSave = useCallback(async () => {
