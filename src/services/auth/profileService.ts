@@ -160,6 +160,13 @@ export async function updateUserSettings(
   await updateDoc(doc(db, 'users', uid, 'settings', 'data'), updates as Record<string, unknown>);
 }
 
+export async function updateUserProfile(
+  uid: string,
+  updates: Partial<Pick<UserProfile, 'displayName' | 'photoURL' | 'expoPushToken'>>
+): Promise<void> {
+  await updateDoc(doc(db, 'users', uid, 'profile', 'data'), updates as Record<string, unknown>);
+}
+
 // Deletes all Firestore data for a user.
 // Must succeed before the Firebase Auth account is deleted (enforced in authService.deleteAccount).
 export async function deleteAllUserData(uid: string): Promise<void> {
