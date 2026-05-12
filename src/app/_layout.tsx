@@ -11,6 +11,7 @@ import { loadUserProfile, initializeUserProfile } from '@/services/auth/profileS
 import { useUserStore } from '@/stores/user/useUserStore';
 import { getRouteRedirect } from '@/utils/routeGuard';
 import { useWaterSync } from '@/hooks/useWaterSync';
+import { useStreakSync } from '@/hooks/useStreakSync';
 import { AppColors } from '@/constants/theme';
 import type { AuthUser } from '@/types/auth';
 
@@ -50,8 +51,9 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  // Sync water store with Firestore on auth + handle day resets
+  // Sync stores with Firestore on auth + handle day resets
   useWaterSync();
+  useStreakSync();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
