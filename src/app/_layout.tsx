@@ -50,13 +50,13 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { setAuthStatus, setUser, setProfile, clearAuth } = useUserStore();
-
   // Sync water store with Firestore on auth + handle day resets
   useWaterSync();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const { setAuthStatus, setUser, setProfile, clearAuth } = useUserStore.getState();
+
       if (!firebaseUser) {
         clearAuth();
         return;
@@ -86,7 +86,6 @@ export default function RootLayout() {
       } else {
         setProfile(profile);
         setAuthStatus('authenticated');
-        // TODO: call useFastingStore._hydrate() once fasting-store module is complete
       }
     });
 
