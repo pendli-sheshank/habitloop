@@ -2,11 +2,15 @@ import {
   doc,
   collection,
   writeBatch,
+  updateDoc,
+  increment,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { calculateXpReward } from '@/services/fasting/fastingEngine';
-import type { ActiveFastState, FastSession } from '@/types/fasting';
+import { calcLevelFromXp } from '@/services/fasting/xpEngine';
+import { getUTCDayKey } from '@/utils/dateUtils';
+import type { ActiveFastState, FastSession, FastCompletionResult } from '@/types/fasting';
 
 export function buildFastSession(
   userId: string,
@@ -33,7 +37,7 @@ export async function saveFastSession(
   completed: boolean,
 ): Promise<void> {
   const session = buildFastSession(userId, activeFast, completed);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getUTCDayKey(Date.now());
 
   const batch = writeBatch(db);
 
@@ -53,4 +57,29 @@ export async function saveFastSession(
   }
 
   await batch.commit();
+}
+
+/**
+ * Writes the streak and XP aggregate after a fast is saved.
+ * Must be called after saveFastSession succeeds — kept separate so
+ * a streak write failure does not roll back the session log.
+ */
+export async function persistFastCompletion(
+  userId: string,
+  result: FastCompletionResult,
+  currentXpTotal: number,
+): Promise<void> {
+  const today = getUTCDayKey(Date.now());
+  const totalXpEarned = result.xpEarned + result.bonusXp;
+  const newXpTotal = currentXpTotal + totalXpEarned;
+  const newLevel = calcLevelFromXp(newXpTotal);
+
+  const streakRef = doc(db, 'users', userId, 'aggregates', 'streak');
+  await updateDoc(streakRef, {
+    currentStreakDays: result.newStreak,
+    longestStreakDays: result.longestStreak,
+    lastStreakDate: today,
+    xpTotal: increment(totalXpEarned),
+    level: newLevel,
+  });
 }

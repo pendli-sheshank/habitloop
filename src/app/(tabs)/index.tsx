@@ -10,7 +10,8 @@ import { useFastingStore } from '@/stores/fasting/useFastingStore';
 import { useFastingTimer } from '@/hooks/useFastingTimer';
 import { useFastingResync } from '@/hooks/useFastingResync';
 import { getProtocolDurationMs, calculateEatingWindowEnd } from '@/services/fasting/fastingEngine';
-import { saveFastSession } from '@/services/fasting/fastingService';
+import { saveFastSession, persistFastCompletion } from '@/services/fasting/fastingService';
+import { scheduleFastingNotifications } from '@/services/notifications/notificationService';
 import { updateStreak } from '@/services/fasting/streakEngine';
 import { calcFastXp, calcStreakBonusXp } from '@/services/fasting/xpEngine';
 import { getUTCDayKey } from '@/utils/dateUtils';
@@ -45,8 +46,12 @@ export default function HomeScreen() {
 
   const handleStartFast = useCallback(() => {
     const durationMs = getProtocolDurationMs(selectedProtocol);
+    const startTime = Date.now();
     startFast(selectedProtocol, durationMs);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    scheduleFastingNotifications(startTime, durationMs).catch(
+      (e) => console.error('[HomeScreen] Failed to schedule notifications:', e),
+    );
   }, [selectedProtocol, startFast]);
 
   const handleCompleteFast = useCallback(async () => {
@@ -82,6 +87,11 @@ export default function HomeScreen() {
 
     try {
       await saveFastSession(userId, activeFast, true);
+      await persistFastCompletion(
+        userId,
+        result,
+        streakAggregate?.xpTotal ?? 0,
+      );
     } catch (e) {
       console.error('[HomeScreen] Failed to save fast session:', e);
     }
