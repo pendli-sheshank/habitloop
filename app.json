@@ -18,7 +18,7 @@
       "expo-location"
     ],
     "ios": {
-      "bundleIdentifier": "com.habitloop.app",
+      "bundleIdentifier": "com.healthhabitloop.app",
       "supportsTablet": false,
       "entitlements": {
         "aps-environment": "production"
@@ -32,7 +32,7 @@
       }
     },
     "android": {
-      "package": "com.habitloop.app",
+      "package": "com.healthhabitloop.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#6B21A8"
