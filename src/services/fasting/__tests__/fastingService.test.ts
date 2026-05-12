@@ -1,9 +1,10 @@
-import { buildFastSession, saveFastSession } from '../fastingService';
-import type { ActiveFastState } from '@/types/fasting';
+import { buildFastSession, saveFastSession, persistFastCompletion } from '../fastingService';
+import type { ActiveFastState, FastCompletionResult } from '@/types/fasting';
 
 const mockBatchSet = jest.fn();
 const mockBatchUpdate = jest.fn();
 const mockBatchCommit = jest.fn().mockResolvedValue(undefined);
+const mockUpdateDoc = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('firebase/firestore', () => {
   function MockTimestamp() {}
@@ -16,6 +17,8 @@ jest.mock('firebase/firestore', () => {
       commit: mockBatchCommit,
     })),
     serverTimestamp: jest.fn(() => '__SERVER_TIMESTAMP__'),
+    increment: jest.fn((n: number) => ({ __increment: n })),
+    updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
     Timestamp: MockTimestamp,
   };
 });
@@ -96,5 +99,51 @@ describe('saveFastSession', () => {
   it('commits the batch', async () => {
     await saveFastSession('uid-1', mockActiveFast, true);
     expect(mockBatchCommit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('persistFastCompletion', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const result: FastCompletionResult = {
+    xpEarned: 80,
+    bonusXp: 10,
+    newStreak: 3,
+    longestStreak: 5,
+  };
+
+  it('calls updateDoc on the streak aggregate ref', async () => {
+    await persistFastCompletion('uid-1', result, 200);
+    expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+    const ref = mockUpdateDoc.mock.calls[0][0];
+    expect(ref).toContain('streak');
+  });
+
+  it('writes correct streak fields', async () => {
+    await persistFastCompletion('uid-1', result, 200);
+    const payload = mockUpdateDoc.mock.calls[0][1];
+    expect(payload.currentStreakDays).toBe(3);
+    expect(payload.longestStreakDays).toBe(5);
+    expect(payload.lastStreakDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('increments xpTotal by xpEarned + bonusXp', async () => {
+    await persistFastCompletion('uid-1', result, 200);
+    const payload = mockUpdateDoc.mock.calls[0][1];
+    expect(payload.xpTotal).toEqual({ __increment: 90 });
+  });
+
+  it('calculates level from new total XP', async () => {
+    await persistFastCompletion('uid-1', result, 200);
+    const payload = mockUpdateDoc.mock.calls[0][1];
+    expect(typeof payload.level).toBe('number');
+    expect(payload.level).toBeGreaterThanOrEqual(1);
+  });
+
+  it('handles zero bonusXp', async () => {
+    const noBonus: FastCompletionResult = { ...result, bonusXp: 0 };
+    await persistFastCompletion('uid-1', noBonus, 0);
+    const payload = mockUpdateDoc.mock.calls[0][1];
+    expect(payload.xpTotal).toEqual({ __increment: 80 });
   });
 });
