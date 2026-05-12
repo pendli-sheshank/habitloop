@@ -28,10 +28,11 @@ const mockProfile: UserProfile = {
 describe('useUserStore', () => {
   beforeEach(() => {
     useUserStore.setState({
-      authStatus: 'unknown',
-      user:       null,
-      profile:    null,
-      isPremium:  false,
+      authStatus:      'unknown',
+      user:            null,
+      profile:         null,
+      streakAggregate: null,
+      isPremium:       false,
     });
   });
 

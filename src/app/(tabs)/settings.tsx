@@ -8,7 +8,7 @@ import { useUserStore } from '@/stores/user/useUserStore';
 import { useFastingStore } from '@/stores/fasting/useFastingStore';
 import { useWaterStore } from '@/stores/water/useWaterStore';
 import { signOutUser } from '@/services/auth/authService';
-import { loadUserSettings, updateUserSettings } from '@/services/auth/profileService';
+import { loadUserSettings, updateUserSettings, updateUserProfile } from '@/services/auth/profileService';
 import { calculateWaterGoal } from '@/services/water/hydrationGoal';
 import { PROTOCOL_OPTIONS } from '@/constants/protocols';
 import { DeleteAccountDialog } from '@/components/DeleteAccountDialog';
@@ -103,6 +103,10 @@ export default function SettingsScreen() {
           socialNudges: settings?.notifications.socialNudges ?? true,
         },
       });
+
+      if (displayName.trim() && displayName.trim() !== profile?.displayName) {
+        await updateUserProfile(user.uid, { displayName: displayName.trim() });
+      }
 
       // Update local stores
       useFastingStore.getState().setSelectedProtocol(defaultProtocol);

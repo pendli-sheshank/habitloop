@@ -1,13 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { doc, onSnapshot } from 'firebase/firestore';
 
-import { db } from '@/services/firebase';
 import { useUserStore } from '@/stores/user/useUserStore';
 import { useFastingStore } from '@/stores/fasting/useFastingStore';
 import { AppColors, AppSpacing, AppFontSize, AppRadius } from '@/constants/theme';
-import type { StreakAggregate } from '@/types/auth';
 
 const LEVEL_TITLES: Record<number, string> = {
   1: 'Beginner',
@@ -17,25 +14,9 @@ const LEVEL_TITLES: Record<number, string> = {
 };
 
 export function StreakCounter() {
-  const user = useUserStore(s => s.user);
+  const streak = useUserStore(s => s.streakAggregate);
   const completionResult = useFastingStore(s => s.lastCompletionResult);
   const clearCompletionResult = useFastingStore(s => s.clearCompletionResult);
-  const [streak, setStreak] = useState<StreakAggregate | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    const ref = doc(db, 'users', user.uid, 'aggregates', 'streak');
-    const unsubscribe = onSnapshot(
-      ref,
-      (snap) => {
-        if (snap.exists()) {
-          setStreak(snap.data() as StreakAggregate);
-        }
-      },
-      (err) => console.error('[StreakCounter] snapshot error:', err),
-    );
-    return () => unsubscribe();
-  }, [user]);
 
   useEffect(() => {
     if (!completionResult) return;
