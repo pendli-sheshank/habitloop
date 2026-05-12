@@ -15,8 +15,17 @@ const firebaseConfig = {
 const isNewApp = getApps().length === 0;
 const app = isNewApp ? initializeApp(firebaseConfig) : getApps()[0];
 
-export const auth = isNewApp
-  ? initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) })
-  : getAuth(app);
+function buildAuth() {
+  if (!isNewApp) return getAuth(app);
+  try {
+    return initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (e) {
+    console.error('[Firebase] initializeAuth with persistence failed, falling back to getAuth:', e);
+    return getAuth(app);
+  }
+}
 
+export const auth = buildAuth();
 export const db = getFirestore(app);
