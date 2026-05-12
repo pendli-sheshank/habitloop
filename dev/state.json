@@ -37,7 +37,18 @@
   "knownIssues": [
     "package.json uses React 19.2.0 / RN 0.83.6 (SDK 55 defaults) — SKILLS.md version lock (18.2.0/0.76.x) predates SDK 55; actual versions are SDK 55 compatible and should NOT be downgraded"
   ],
-  "buildStatus": "preview-ready",
+  "buildStatus": "crash-fixes-applied",
   "lastTested": "2026-05-12",
-  "lastUpdated": "2026-05-12"
+  "lastUpdated": "2026-05-12",
+  "crashFixSummary": [
+    "app.json: added extra.router.root=src so Expo Router finds routes in src/app/",
+    "animated-icon.tsx: replaced scheduleOnRN (worklets) with runOnJS (reanimated)",
+    "package.json: removed phantom expo-glass-effect and conflicting react-native-worklets",
+    "firebase.ts: wrapped initializeAuth in try/catch with getAuth fallback",
+    "deleteAccountFlow.ts: static import for expo-notifications (fixes test + dynamic import risk)",
+    "fastingService.ts: added persistFastCompletion streak aggregate write",
+    "index.tsx: wired persistFastCompletion + scheduleFastingNotifications",
+    "useStreakSync.ts: moved Firestore onSnapshot out of UI into root-layout hook",
+    "StreakCounter.tsx: reads from store only (no Firestore in UI)"
+  ]
 }
