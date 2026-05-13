@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "plugins": [
-      ["expo-router", { "root": "src" }],
+      ["expo-router", { "root": "src/app" }],
       [
         "expo-notifications",
         {
@@ -19,8 +19,8 @@
     ],
     "ios": {
       "bundleIdentifier": "com.healthhabitloop.app",
-      "supportsTablet": false,
       "buildNumber": "2",
+      "supportsTablet": false,
       "entitlements": {
         "aps-environment": "production"
       },
