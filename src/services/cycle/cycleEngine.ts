@@ -1,4 +1,4 @@
-import { differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parseISO, isValid } from 'date-fns';
 import { CyclePhase } from '@/types/cycle';
 import type { CyclePhaseType, PhaseRecommendation } from '@/types/cycle';
 import type { FastingProtocol } from '@/types/fasting';
@@ -44,7 +44,9 @@ export function getCurrentPhaseFromISO(
   avgPeriodLength = 5,
 ): CyclePhaseType {
   try {
-    return getCurrentPhase(parseISO(lastPeriodStartISO), avgCycleLength, avgPeriodLength);
+    const parsed = parseISO(lastPeriodStartISO);
+    if (!isValid(parsed)) return CyclePhase.FOLLICULAR;
+    return getCurrentPhase(parsed, avgCycleLength, avgPeriodLength);
   } catch {
     return CyclePhase.FOLLICULAR;
   }
@@ -57,6 +59,7 @@ export function getCurrentPhaseFromISO(
 export function getDayOfCycle(lastPeriodStartISO: string, avgCycleLength = 28): number | null {
   try {
     const start = parseISO(lastPeriodStartISO);
+    if (!isValid(start)) return null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     start.setHours(0, 0, 0, 0);
