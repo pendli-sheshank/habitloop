@@ -76,17 +76,23 @@ npx expo customize tsconfig.json
 
 ### app.json
 
+**Critical rules before editing app.json:**
+- `expo-router` root MUST be set inside the plugin config — NOT in `extra.router`. `extra.router.root` is only read by Expo Go (dev). Production bundles only read the plugin option.
+- `android.versionCode` MUST be incremented on every Play Store upload — Play Store rejects duplicate version codes.
+- `android.package` / `ios.bundleIdentifier` must be unique on the store. If Play Store reports a conflict, pick a new name before first upload — it cannot be changed after publish.
+- All `EXPO_PUBLIC_*` env vars must be added in **expo.dev → Environment Variables** before building. Missing vars = Firebase init with `undefined` config = crash on launch.
+
 ```json
 {
   "expo": {
     "name": "HabitLoop",
     "slug": "habitloop",
     "scheme": "habitloop",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "plugins": [
-      "expo-router",
+      ["expo-router", { "root": "src" }],
       [
         "expo-notifications",
         {
@@ -97,7 +103,8 @@ npx expo customize tsconfig.json
       "expo-location"
     ],
     "ios": {
-      "bundleIdentifier": "com.habitloop.app",
+      "bundleIdentifier": "com.healthhabitloop.app",
+      "buildNumber": "2",
       "supportsTablet": false,
       "entitlements": {
         "aps-environment": "production"
@@ -108,16 +115,24 @@ npx expo customize tsconfig.json
       }
     },
     "android": {
-      "package": "com.habitloop.app",
+      "package": "com.healthhabitloop.app",
+      "versionCode": 2,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#6B21A8"
       },
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d98013b8-a5b8-4d4d-8350-efcc0577bdd0"
+      }
     }
   }
 }
@@ -976,6 +991,53 @@ eas update --branch production --message "Description of change"
 
 ---
 
+## 19. Play Store Submission Rules
+
+### 19.1 Pre-Build Checklist (every release)
+
+| Check | What to verify |
+|---|---|
+| `android.versionCode` | Incremented by 1 from the last uploaded build — Play Store rejects duplicates |
+| `version` | Bumped to match (e.g. `1.0.0` → `1.0.1`) |
+| `android.package` | Unique — check Play Console before first upload; cannot be changed after publish |
+| EAS env vars | All `EXPO_PUBLIC_*` vars set in expo.dev → Environment Variables for the correct environment (Preview / Production) |
+| Build profile | Use `production` profile for Play Store (produces `.aab`); `preview` produces `.apk` for internal sideload only |
+
+### 19.2 Build & Submit Commands (Windows)
+
+```cmd
+rem CMD
+set EXPO_TOKEN=your_token_here
+eas build --platform android --profile production --non-interactive
+eas submit --platform android --latest
+```
+
+```powershell
+# PowerShell
+$env:EXPO_TOKEN="your_token_here"
+eas build --platform android --profile production --non-interactive
+eas submit --platform android --latest
+```
+
+**Note:** `EXPO_TOKEN=value command` (Unix inline syntax) does not work on Windows CMD. Always use `set` or `$env:` first.
+
+### 19.3 Manual AAB Upload (no service account needed)
+
+If `eas submit` is too complex:
+1. expo.dev → your project → Builds → download `.aab`
+2. Play Console → your app → Internal testing → Create new release → upload `.aab`
+
+### 19.4 Common Play Store Upload Errors
+
+| Error | Cause | Fix |
+|---|---|---|
+| `Version code N has already been used` | `android.versionCode` not incremented | Bump `versionCode` in `app.json`, rebuild |
+| `Package name needs to be X` + content provider conflicts | Package name already claimed by another developer | Change `android.package` and `ios.bundleIdentifier` to a unique name |
+| `Unmatched Route: Page could not be found` | `expo-router` root set in `extra.router` instead of plugin config | Move root to `["expo-router", { "root": "src" }]` in `plugins` array |
+| App crashes on launch (works in Expo Go) | `EXPO_PUBLIC_*` env vars missing from EAS build | Add all Firebase env vars in expo.dev → Environment Variables |
+
+---
+
 ## 20. Build Stability — Expo/Metro/React Native Critical Errors
 
 ### 20.1 Strict Setup Rules (Non-Negotiable)
@@ -1130,6 +1192,10 @@ npx expo start -c
 | `TypeError: Cannot read property 'db' of undefined` | Firebase init timing issue | Wrap Firebase calls in try/catch, check initialization order |
 | `Duplicate "React" import` | Mixed React imports | Use `import React from 'react'` OR skip if not using JSX |
 | `TypeScript errors after upgrade` | Version mismatch | Run `npx tsc --noEmit` after any upgrade |
+| `Version code N has already been used` | `versionCode` not incremented before rebuild | Bump `android.versionCode` in `app.json` and rebuild |
+| `Unmatched Route habitloop:///` | `extra.router.root` ignored in production bundle | Use `["expo-router", {"root":"src"}]` plugin config instead |
+| App crashes on launch, works in Expo Go | Firebase env vars undefined in standalone build | Add all `EXPO_PUBLIC_*` vars to expo.dev → Environment Variables |
+| `EXPO_TOKEN=x command` not recognized on Windows | Unix inline env syntax unsupported in CMD | Use `set EXPO_TOKEN=x` (CMD) or `$env:EXPO_TOKEN="x"` (PowerShell) |
 
 ---
 
