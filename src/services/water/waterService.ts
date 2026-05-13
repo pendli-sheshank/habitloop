@@ -89,8 +89,10 @@ export interface DailyWaterSummary {
 }
 
 /**
- * Loads per-day water totals for the past `days` days by summing waterEvent
- * documents. Groups by UTC day key on the client side.
+ * Loads per-day water totals for the past `days` days.
+ * waterEvent docs store only { ml, date, loggedAt } — goalMl is not persisted
+ * per-event. We read the current goal from the today aggregate and apply it
+ * uniformly across history (best available approximation).
  */
 export async function loadWaterHistory(
   userId: string,
@@ -98,27 +100,30 @@ export async function loadWaterHistory(
 ): Promise<DailyWaterSummary[]> {
   try {
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-    const q = query(
-      collection(db, 'waterEvents'),
-      where('userId', '==', userId),
-      where('loggedAt', '>=', cutoff),
-      orderBy('loggedAt', 'asc'),
-      limit(days * 20),  // at most 20 events per day
-    );
-    const snap = await getDocs(q);
 
-    const byDay = new Map<string, { totalMl: number; goalMl: number }>();
-    snap.docs.forEach(d => {
-      const ev = d.data() as { date: string; ml: number; goalMl?: number };
-      const existing = byDay.get(ev.date) ?? { totalMl: 0, goalMl: ev.goalMl ?? 0 };
-      byDay.set(ev.date, {
-        totalMl: existing.totalMl + ev.ml,
-        goalMl: ev.goalMl ?? existing.goalMl,
-      });
+    const [eventsSnap, todaySnap] = await Promise.all([
+      getDocs(query(
+        collection(db, 'waterEvents'),
+        where('userId', '==', userId),
+        where('loggedAt', '>=', cutoff),
+        orderBy('loggedAt', 'asc'),
+        limit(days * 20),
+      )),
+      getDoc(doc(db, 'users', userId, 'aggregates', 'today')),
+    ]);
+
+    const goalMl = todaySnap.exists()
+      ? ((todaySnap.data() as TodayAggregate).waterGoalMl ?? 0)
+      : 0;
+
+    const byDay = new Map<string, number>();
+    eventsSnap.docs.forEach(d => {
+      const ev = d.data() as { date: string; ml: number };
+      byDay.set(ev.date, (byDay.get(ev.date) ?? 0) + ev.ml);
     });
 
     return Array.from(byDay.entries())
-      .map(([date, { totalMl, goalMl }]) => ({
+      .map(([date, totalMl]) => ({
         date,
         totalMl,
         goalMl,

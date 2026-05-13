@@ -166,7 +166,6 @@ export function FastHeatmap({ data, weeks = 13 }: HeatmapProps) {
 
   // Pad grid to align to Sunday start
   const today = new Date();
-  const dayOfWeek = today.getDay(); // 0=Sun
   const cells: Array<{ date: string; value: number } | null> = [];
   for (let i = totalCells - 1; i >= 0; i--) {
     const d = new Date(today);

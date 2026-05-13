@@ -57,10 +57,11 @@ const BADGE_REGISTRY: Record<BadgeId, BadgeMeta> = {
 
 export default function BadgeDetailScreen() {
   const router   = useRouter();
-  const { id }   = useLocalSearchParams<{ id: string }>();
+  const params   = useLocalSearchParams<{ id: string }>();
   const badgeIds = useUserStore(s => s.streakAggregate?.badgeIds ?? []);
 
-  const badgeId = id as BadgeId;
+  const rawId   = Array.isArray(params.id) ? params.id[0] : params.id;
+  const badgeId = (rawId ?? '') as BadgeId;
   const meta    = BADGE_REGISTRY[badgeId];
   const earned  = badgeIds.includes(badgeId);
 

@@ -68,10 +68,10 @@ export default function FastHistoryScreen() {
   const heatmapData = buildHeatmapData(sessions);
   const weeklyData  = buildWeeklyBarData(sessions);
 
-  const totalCompleted = sessions.filter(s => s.completed).length;
+  const totalCompleted = sessions.length; // service query filters completed:true
   const totalXp        = sessions.reduce((sum, s) => sum + s.xpEarned, 0);
   const avgDurationMs  = sessions.length
-    ? sessions.reduce((sum, s) => sum + ((s.endTime ?? s.startTime) - s.startTime), 0) / sessions.length
+    ? sessions.reduce((sum, s) => sum + ((s.endTime ?? Date.now()) - s.startTime), 0) / sessions.length
     : 0;
 
   return (

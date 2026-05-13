@@ -292,7 +292,13 @@ export default function SocialScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.badgeScroll}>
               <View style={styles.badgeRow}>
                 {earnedBadges.map(id => (
-                  <BadgeChip key={id} badgeId={id} earned />
+                  <TouchableOpacity
+                    key={id}
+                    onPress={() => router.push(`/badge-detail/${id}`)}
+                    activeOpacity={0.7}
+                  >
+                    <BadgeChip badgeId={id} earned />
+                  </TouchableOpacity>
                 ))}
               </View>
             </ScrollView>
