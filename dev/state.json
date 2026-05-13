@@ -1,6 +1,6 @@
 {
-  "phase": "phase-1b",
-  "lastFeature": "cycle-module-complete",
+  "phase": "phase-2",
+  "lastFeature": "group-social-complete",
   "completedModules": [
     "firebase-init",
     "auth-service",
@@ -43,13 +43,26 @@
     "symptom-logger-component",
     "cycle-calendar-component",
     "cycle-tab-screen",
-    "cycle-engine-tests"
+    "cycle-engine-tests",
+    "group-types",
+    "group-engine",
+    "group-service",
+    "notification-service-social",
+    "group-store",
+    "badge-chip-component",
+    "group-card-component",
+    "challenge-card-component",
+    "leaderboard-component",
+    "check-in-button-component",
+    "social-tab-screen",
+    "group-detail-screen",
+    "group-engine-tests"
   ],
   "pendingModules": [],
   "knownIssues": [
     "package.json uses React 19.2.0 / RN 0.83.6 (SDK 55 defaults) — SKILLS.md version lock (18.2.0/0.76.x) predates SDK 55; actual versions are SDK 55 compatible and should NOT be downgraded"
   ],
-  "buildStatus": "phase-1b-complete",
+  "buildStatus": "phase-2-complete",
   "lastTested": "2026-05-13",
   "lastUpdated": "2026-05-13",
   "crashFixSummary": [
@@ -77,5 +90,22 @@
     "src/app/(tabs)/cycle.tsx: full cycle screen with Firestore sync on mount, day-rollover guard",
     "src/app/(tabs)/_layout.tsx: heart-pulse cycle tab added between Water and Settings",
     "src/services/cycle/__tests__/cycleEngine.test.ts: 47 tests, all 316 suite tests passing"
+  ],
+  "phase2Summary": [
+    "src/types/group.ts: Group, GroupMember, LeaderboardEntry, ChallengeStatus types",
+    "src/services/group/groupEngine.ts: getChallengeStatus, isChallengeActive, isChallengeOver, daysRemainingInChallenge, challengeDayNumber, isStreakFrozen, didAllMembersCheckIn, getGroupCheckInRate, getMemberCheckInStreak, sortLeaderboard, computeEndDate",
+    "src/services/group/groupService.ts: createGroup, joinGroup, leaveGroup, loadUserGroups, loadGroup, submitCheckIn, loadLeaderboard, updateLeaderboardXp, loadCheckInFeed, loadGroupMembers",
+    "src/services/notifications/notificationService.ts: added social channel, scheduleChallengeStartNotification, schedulePartnerNudges, notifyStreakFrozen",
+    "src/types/notifications.ts: added 'social' to NotificationChannel union",
+    "src/stores/group/useGroupStore.ts: persisted Zustand store, partialize excludes leaderboards",
+    "src/components/shared/BadgeChip.tsx: earned/unearned badge display",
+    "src/components/social/GroupCard.tsx: group list item with challenge status chip",
+    "src/components/social/ChallengeCard.tsx: active/frozen/upcoming challenge display",
+    "src/components/social/Leaderboard.tsx: sorted leaderboard with competition rank",
+    "src/components/social/CheckInButton.tsx: three states (inactive/ready/done)",
+    "src/app/(tabs)/social.tsx: groups list, create/join modals, XP bar, badge shelf",
+    "src/app/group/[id].tsx: group detail with check-in feed, leaderboard, share",
+    "src/app/(tabs)/_layout.tsx: account-group-outline social tab added",
+    "src/services/group/__tests__/groupEngine.test.ts: 53 tests, all passing"
   ]
 }
