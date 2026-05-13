@@ -1,17 +1,21 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { StyleSheet, ScrollView, View, Alert } from 'react-native';
+import { StyleSheet, ScrollView, View, Alert, TouchableOpacity } from 'react-native';
 import { Text, TextInput, Button, Switch, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AppColors, AppSpacing, AppFontSize, AppRadius } from '@/constants/theme';
 import { useUserStore } from '@/stores/user/useUserStore';
 import { useFastingStore } from '@/stores/fasting/useFastingStore';
 import { useWaterStore } from '@/stores/water/useWaterStore';
+import { useSubscriptionStore } from '@/stores/subscription/useSubscriptionStore';
 import { signOutUser } from '@/services/auth/authService';
 import { loadUserSettings, updateUserSettings, updateUserProfile } from '@/services/auth/profileService';
 import { calculateWaterGoal } from '@/services/water/hydrationGoal';
 import { PROTOCOL_OPTIONS } from '@/constants/protocols';
 import { DeleteAccountDialog } from '@/components/DeleteAccountDialog';
+import { PremiumBadge } from '@/components/subscription/PremiumBadge';
+import { PaywallSheet } from '@/components/subscription/PaywallSheet';
 import type { UserSettings } from '@/types/auth';
 import type { FastingProtocol } from '@/types/fasting';
 
@@ -46,6 +50,11 @@ export default function SettingsScreen() {
   const profile = useUserStore(s => s.profile);
   const clearAuth = useUserStore(s => s.clearAuth);
 
+  const isPremium = useSubscriptionStore(s => s.isPremium);
+  const tier      = useSubscriptionStore(s => s.tier);
+  const expiresAt = useSubscriptionStore(s => s.expiresAt);
+
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
@@ -256,6 +265,43 @@ export default function SettingsScreen() {
           Save Changes
         </Button>
 
+        {/* Subscription Section */}
+        <SectionHeader title="Subscription" />
+        <View style={styles.card}>
+          <View style={styles.subRow}>
+            <View style={styles.subInfo}>
+              <PremiumBadge size={isPremium ? 'md' : 'sm'} />
+              <Text style={styles.subTier}>
+                {isPremium ? 'HabitLoop Pro' : 'Free Plan'}
+              </Text>
+              {isPremium && expiresAt && (
+                <Text style={styles.subExpiry}>
+                  Renews {new Date(expiresAt).toLocaleDateString()}
+                </Text>
+              )}
+            </View>
+            {!isPremium && (
+              <TouchableOpacity
+                style={styles.upgradeBtn}
+                onPress={() => setPaywallOpen(true)}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="crown" size={14} color={AppColors.surface} />
+                <Text style={styles.upgradeLabel}>Upgrade</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {!isPremium && (
+            <>
+              <Divider style={styles.divider} />
+              <Text style={styles.subFeatureHint}>
+                Unlock AI meals, hormone coaching, unlimited groups and more.
+              </Text>
+            </>
+          )}
+        </View>
+
         {/* Account Section */}
         <SectionHeader title="Account" />
         <View style={styles.card}>
@@ -284,6 +330,13 @@ export default function SettingsScreen() {
       <DeleteAccountDialog
         visible={deleteDialogVisible}
         onDismiss={() => setDeleteDialogVisible(false)}
+      />
+
+      <PaywallSheet
+        visible={paywallOpen}
+        feature="ai-meals"
+        onClose={() => setPaywallOpen(false)}
+        onUpgraded={() => setPaywallOpen(false)}
       />
     </SafeAreaView>
   );
@@ -378,5 +431,43 @@ const styles = StyleSheet.create({
     color: AppColors.gray,
     textAlign: 'center',
     marginTop: AppSpacing.md,
+  },
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: AppSpacing.md,
+  },
+  subInfo: {
+    flex: 1,
+    gap: AppSpacing.xs,
+  },
+  subTier: {
+    fontSize: AppFontSize.md,
+    fontWeight: '600',
+    color: AppColors.dark,
+  },
+  subExpiry: {
+    fontSize: AppFontSize.sm,
+    color: AppColors.textMuted,
+  },
+  upgradeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.xs,
+    backgroundColor: AppColors.primary,
+    borderRadius: AppRadius.full,
+    paddingHorizontal: AppSpacing.md,
+    paddingVertical: AppSpacing.sm,
+  },
+  upgradeLabel: {
+    fontSize: AppFontSize.sm,
+    fontWeight: '700',
+    color: AppColors.surface,
+  },
+  subFeatureHint: {
+    fontSize: AppFontSize.sm,
+    color: AppColors.textMuted,
+    lineHeight: 20,
   },
 });
