@@ -10,13 +10,40 @@ import type { SubscriptionState, SubscriptionStatus } from '@/types/subscription
 
 const ENTITLEMENT_PRO = 'pro';
 
-let Purchases: typeof import('react-native-purchases').default | null = null;
+// Minimal types for the RevenueCat SDK surface we use — avoids depending on
+// uninstalled @types/react-native-purchases declarations.
+interface RCPackage {
+  product: { identifier: string };
+}
+interface RCEntitlement {
+  isActive: boolean;
+  expirationDate: string | null | undefined;
+}
+interface RCCustomerInfo {
+  originalAppUserId: string;
+  entitlements: { active: Record<string, RCEntitlement | undefined> };
+}
+interface RCOffering {
+  availablePackages: RCPackage[];
+}
+interface RCOfferings {
+  current: RCOffering | null;
+}
+interface PurchasesSDK {
+  configure(opts: { apiKey: string; appUserID: string }): void;
+  getCustomerInfo(): Promise<RCCustomerInfo>;
+  getOfferings(): Promise<RCOfferings>;
+  purchasePackage(pkg: RCPackage): Promise<void>;
+  restorePurchases(): Promise<void>;
+}
 
-async function getPurchases() {
+let Purchases: PurchasesSDK | null = null;
+
+async function getPurchases(): Promise<PurchasesSDK | null> {
   if (!Purchases) {
     try {
-      const mod = await import('react-native-purchases');
-      Purchases = mod.default;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      Purchases = (require('react-native-purchases') as { default: PurchasesSDK }).default;
     } catch {
       return null;
     }
@@ -64,9 +91,7 @@ export async function getSubscriptionState(): Promise<SubscriptionState> {
       };
     }
 
-    const status: SubscriptionStatus = entitlement.isActive
-      ? 'active'
-      : 'expired';
+    const status: SubscriptionStatus = entitlement.isActive ? 'active' : 'expired';
 
     return {
       tier: entitlement.isActive ? 'pro' : 'free',
@@ -96,7 +121,7 @@ export async function purchaseProduct(
     if (!current) throw new Error('No current offering');
 
     const pkg = current.availablePackages.find(
-      p => p.product.identifier === productId,
+      (p: RCPackage) => p.product.identifier === productId,
     );
     if (!pkg) throw new Error(`Product ${productId} not found in offering`);
 
@@ -104,11 +129,8 @@ export async function purchaseProduct(
     return getSubscriptionState();
   } catch (e: unknown) {
     // User cancelled purchase — not an error worth logging loudly
-    if (
-      e instanceof Error &&
-      'userCancelled' in (e as Record<string, unknown>) &&
-      (e as Record<string, unknown>).userCancelled === true
-    ) {
+    const err = e as Record<string, unknown>;
+    if (err.userCancelled === true) {
       return getSubscriptionState();
     }
     console.error('[subscriptionService] purchaseProduct failed:', e);

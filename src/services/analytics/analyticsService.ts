@@ -4,18 +4,31 @@
  * the native Firebase module configured.
  */
 
-let analyticsModule: typeof import('@react-native-firebase/analytics').default | null = null;
+// Minimal interface for the Firebase Analytics methods we use.
+interface FirebaseAnalytics {
+  logEvent(name: string, params?: Record<string, unknown>): Promise<void>;
+  logScreenView(params: { screen_name: string; screen_class: string }): Promise<void>;
+  logPurchase(params: {
+    currency: string;
+    value: number;
+    items: Array<{ item_id: string; item_name: string }>;
+  }): Promise<void>;
+}
 
-async function getAnalytics() {
-  if (!analyticsModule) {
+type AnalyticsModule = () => FirebaseAnalytics;
+
+let analyticsFactory: AnalyticsModule | null = null;
+
+async function getAnalytics(): Promise<FirebaseAnalytics | null> {
+  if (!analyticsFactory) {
     try {
-      const mod = await import('@react-native-firebase/analytics');
-      analyticsModule = mod.default;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      analyticsFactory = (require('@react-native-firebase/analytics') as { default: AnalyticsModule }).default;
     } catch {
       return null;
     }
   }
-  return analyticsModule;
+  return analyticsFactory();
 }
 
 export async function logFastingComplete(params: {
@@ -26,7 +39,7 @@ export async function logFastingComplete(params: {
   const analytics = await getAnalytics();
   if (!analytics) return;
   try {
-    await analytics().logEvent('fasting_complete', params);
+    await analytics.logEvent('fasting_complete', params);
   } catch {
     // Non-fatal
   }
@@ -39,7 +52,7 @@ export async function logCheckIn(params: {
   const analytics = await getAnalytics();
   if (!analytics) return;
   try {
-    await analytics().logEvent('group_check_in', params);
+    await analytics.logEvent('group_check_in', params);
   } catch {
     // Non-fatal
   }
@@ -53,7 +66,7 @@ export async function logPurchase(params: {
   const analytics = await getAnalytics();
   if (!analytics) return;
   try {
-    await analytics().logPurchase({
+    await analytics.logPurchase({
       currency: 'USD',
       value: params.priceUSD,
       items: [{ item_id: params.productId, item_name: params.billingPeriod }],
@@ -67,7 +80,7 @@ export async function logPaywallView(feature: string): Promise<void> {
   const analytics = await getAnalytics();
   if (!analytics) return;
   try {
-    await analytics().logEvent('paywall_view', { feature });
+    await analytics.logEvent('paywall_view', { feature });
   } catch {
     // Non-fatal
   }
@@ -77,7 +90,7 @@ export async function logScreenView(screenName: string): Promise<void> {
   const analytics = await getAnalytics();
   if (!analytics) return;
   try {
-    await analytics().logScreenView({ screen_name: screenName, screen_class: screenName });
+    await analytics.logScreenView({ screen_name: screenName, screen_class: screenName });
   } catch {
     // Non-fatal
   }
