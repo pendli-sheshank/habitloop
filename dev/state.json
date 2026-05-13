@@ -1,6 +1,6 @@
 {
-  "phase": "phase-1",
-  "lastFeature": "crash-fix-force-close",
+  "phase": "phase-1b",
+  "lastFeature": "cycle-module-complete",
   "completedModules": [
     "firebase-init",
     "auth-service",
@@ -31,15 +31,27 @@
     "home-screen-ui",
     "water-screen-ui",
     "settings-screen",
-    "profile-edit-screen"
+    "profile-edit-screen",
+    "cycle-types",
+    "cycle-constants",
+    "cycle-engine",
+    "cycle-service",
+    "cycle-store",
+    "cycle-phase-hook",
+    "phase-card-component",
+    "fasting-warning-banner",
+    "symptom-logger-component",
+    "cycle-calendar-component",
+    "cycle-tab-screen",
+    "cycle-engine-tests"
   ],
   "pendingModules": [],
   "knownIssues": [
     "package.json uses React 19.2.0 / RN 0.83.6 (SDK 55 defaults) — SKILLS.md version lock (18.2.0/0.76.x) predates SDK 55; actual versions are SDK 55 compatible and should NOT be downgraded"
   ],
-  "buildStatus": "crash-fixes-applied",
-  "lastTested": "2026-05-12",
-  "lastUpdated": "2026-05-12",
+  "buildStatus": "phase-1b-complete",
+  "lastTested": "2026-05-13",
+  "lastUpdated": "2026-05-13",
   "crashFixSummary": [
     "app.json: added extra.router.root=src so Expo Router finds routes in src/app/",
     "animated-icon.tsx: replaced scheduleOnRN (worklets) with runOnJS (reanimated)",
@@ -50,5 +62,20 @@
     "index.tsx: wired persistFastCompletion + scheduleFastingNotifications",
     "useStreakSync.ts: moved Firestore onSnapshot out of UI into root-layout hook",
     "StreakCounter.tsx: reads from store only (no Firestore in UI)"
+  ],
+  "phase1bSummary": [
+    "src/types/cycle.ts: CyclePhase const, CyclePhaseType, SymptomScale, SymptomEntry, CycleLog, PhaseRecommendation, PhaseDisplayConfig",
+    "src/constants/phases.ts: PHASE_DISPLAY (color/emoji/dayRange per phase), SYMPTOM_LABELS, SYMPTOM_EMOJIS",
+    "src/services/cycle/cycleEngine.ts: getCurrentPhase, getCurrentPhaseFromISO, getDayOfCycle, getFastingRecommendation, shouldWarnForProtocol, computeAvgCycleLength",
+    "src/services/cycle/cycleService.ts: savePeriodStart, logSymptoms, loadLatestCycleLog, loadPeriodHistory, loadTodaySymptoms",
+    "src/stores/cycle/useCycleStore.ts: persisted Zustand store for lastPeriodStart, avgCycleLength, avgPeriodLength, todaySymptoms",
+    "src/hooks/useCyclePhase.ts: memoized hook returning phase, dayOfCycle, recommendation, isTracking, warnForProtocol()",
+    "src/components/cycle/PhaseCard.tsx: phase emoji + label + day + recommendation + warningLevel badge",
+    "src/components/cycle/FastingWarningBanner.tsx: amber/red banner for caution/avoid warning levels",
+    "src/components/cycle/SymptomLogger.tsx: 5x5 emoji grid, optimistic save, async onSave prop",
+    "src/components/cycle/CycleCalendar.tsx: month grid, phase bg colors, period-start tap, legend",
+    "src/app/(tabs)/cycle.tsx: full cycle screen with Firestore sync on mount, day-rollover guard",
+    "src/app/(tabs)/_layout.tsx: heart-pulse cycle tab added between Water and Settings",
+    "src/services/cycle/__tests__/cycleEngine.test.ts: 47 tests, all 316 suite tests passing"
   ]
 }
