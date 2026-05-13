@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, ScrollView, View } from 'react-native';
+import { StyleSheet, ScrollView, View, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AppColors, AppSpacing, AppFontSize, AppRadius } from '@/constants/theme';
 import { useWaterStore } from '@/stores/water/useWaterStore';
@@ -43,6 +45,7 @@ function TodayLogList() {
 }
 
 export default function WaterScreen() {
+  const router = useRouter();
   const todayDate = useWaterStore(s => s.todayDate);
   const goalMl = useWaterStore(s => s.goalMl);
   const resetDay = useWaterStore(s => s.resetDay);
@@ -62,7 +65,17 @@ export default function WaterScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.heading}>Hydration</Text>
+        <View style={styles.headingRow}>
+          <Text style={styles.heading}>Hydration</Text>
+          <TouchableOpacity
+            style={styles.historyLink}
+            onPress={() => router.push('/water-history')}
+            hitSlop={8}
+          >
+            <Text style={styles.historyLinkText}>History</Text>
+            <MaterialCommunityIcons name="chevron-right" size={16} color={AppColors.primary} />
+          </TouchableOpacity>
+        </View>
 
         <WaterLogSheet />
 
@@ -91,11 +104,29 @@ const styles = StyleSheet.create({
     gap: AppSpacing.lg,
     paddingBottom: AppSpacing.xxl,
   },
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
   heading: {
     fontSize: AppFontSize.xxl,
     fontWeight: '700',
     color: AppColors.dark,
     textAlign: 'center',
+  },
+  historyLink: {
+    position: 'absolute',
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  historyLinkText: {
+    fontSize: AppFontSize.sm,
+    color: AppColors.primary,
+    fontWeight: '600',
   },
   bannerContainer: {
     width: '100%',

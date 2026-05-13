@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── User documents ─────────────────────────────────────────────────────
+    // Each user owns their entire subtree; no cross-user reads or writes.
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // ── Fast sessions ──────────────────────────────────────────────────────
+    // Created by the app with userId embedded; only the owner may read/write.
+    match /fastSessions/{sessionId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == resource.data.userId;
+      // Allow create: caller can only write their own userId
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.userId;
+    }
+
+    // ── Water events ───────────────────────────────────────────────────────
+    match /waterEvents/{eventId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.userId;
+    }
+
+    // ── Groups ─────────────────────────────────────────────────────────────
+    // Members can read and write (check-ins, leaderboard updates).
+    // Only a member can create, and they must include themselves in memberIds.
+    match /groups/{groupId} {
+      allow read: if request.auth != null
+                  && request.auth.uid in resource.data.memberIds;
+      allow write: if request.auth != null
+                   && request.auth.uid in resource.data.memberIds;
+      allow create: if request.auth != null
+                    && request.auth.uid in request.resource.data.memberIds;
+    }
+
+    // ── Cycle logs ─────────────────────────────────────────────────────────
+    // Written via the cycle service under users/{uid}/cycleLogs — covered by
+    // the wildcard rule above. Explicit rule here for clarity.
+    match /users/{userId}/cycleLogs/{logId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // ── Default deny ──────────────────────────────────────────────────────
+    // Any path not matched above is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
-  "phase": "phase-3",
-  "lastFeature": "subscription-analytics-complete",
+  "phase": "phase-4",
+  "lastFeature": "history-screens-infra-complete",
   "completedModules": [
     "firebase-init",
     "auth-service",
@@ -70,14 +70,25 @@
     "paywall-sheet-component",
     "cycle-screen-premium-wiring",
     "settings-screen-subscription-section",
-    "phase3-tests"
+    "phase3-tests",
+    "fast-history-service",
+    "water-history-service",
+    "charts-component",
+    "fast-history-screen",
+    "water-history-screen",
+    "badge-detail-screen",
+    "home-fast-history-link",
+    "water-history-link",
+    "firestore-rules",
+    "eas-production-config",
+    "app-json-privacy-manifest"
   ],
   "pendingModules": [],
   "knownIssues": [
     "package.json uses React 19.2.0 / RN 0.83.6 (SDK 55 defaults) — SKILLS.md version lock (18.2.0/0.76.x) predates SDK 55; actual versions are SDK 55 compatible and should NOT be downgraded",
     "react-native-purchases and @react-native-firebase/analytics are not in package.json — lazy-loaded via require() with graceful fallback; install before App Store submission"
   ],
-  "buildStatus": "phase-3-complete",
+  "buildStatus": "phase-4-complete",
   "lastTested": "2026-05-13",
   "lastUpdated": "2026-05-13",
   "crashFixSummary": [
@@ -140,6 +151,20 @@
     "src/services/ai/__tests__/hormoneCoachingService.test.ts: 12 tests",
     "src/services/ai/__tests__/mealSuggestionService.test.ts: 16 tests — cache, API, headers, error paths, parseResponse",
     "src/stores/subscription/__tests__/useSubscriptionStore.test.ts: 10 tests — defaults, tier transitions, canAccess, clearSubscription",
+    "Total: 407 tests passing, 0 failures, tsc clean"
+  ],
+  "phase4Summary": [
+    "src/services/fasting/fastingService.ts: added loadFastHistory(userId, maxCount=90) — Firestore query ordered by startTime desc",
+    "src/services/water/waterService.ts: added loadWaterHistory(userId, days=30) + DailyWaterSummary interface — client-side grouping by UTC day",
+    "src/components/shared/Charts.tsx: BarChart (SVG, y-axis ticks, goal line, highlighted bars) + FastHeatmap (13-week grid, 3-level colour, day-of-week headers, legend) — uses react-native-svg (existing dep)",
+    "src/app/fast-history/index.tsx: summary stats, 13-week heatmap, fasts-by-day-of-week bar chart, 30-session list with XP and cancelled state",
+    "src/app/water-history/index.tsx: 7d/30d toggle, goal-hit/avg/best stats, daily intake bar chart with goal line, day-by-day log",
+    "src/app/badge-detail/[id].tsx: dynamic route [id]; hero emoji, earned/locked pill, unlock condition, XP value, native Share on earned badges",
+    "src/app/(tabs)/index.tsx: 'View fast history' link → /fast-history",
+    "src/app/(tabs)/water.tsx: 'History' link in heading row → /water-history",
+    "firestore.rules: security rules for users/**, fastSessions, waterEvents, groups, cycleLogs with owner-only and member-only access + default deny",
+    "eas.json: production channel + autoIncrement iOS, staging profile, submit block with iOS/Android placeholders",
+    "app.json: NSHealthShareUsageDescription, NSHealthUpdateUsageDescription, privacyManifests.NSPrivacyAccessedAPITypes (UserDefaults CA92.1)",
     "Total: 407 tests passing, 0 failures, tsc clean"
   ]
 }

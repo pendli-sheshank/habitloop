@@ -2,8 +2,13 @@ import {
   doc,
   collection,
   getDoc,
+  getDocs,
   writeBatch,
   serverTimestamp,
+  query,
+  where,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { getUTCDayKey } from '@/utils/dateUtils';
@@ -74,4 +79,54 @@ export async function loadTodayWater(
     waterGoalMet: data.waterGoalMet,
     date: data.date,
   };
+}
+
+export interface DailyWaterSummary {
+  date: string;
+  totalMl: number;
+  goalMl: number;
+  goalMet: boolean;
+}
+
+/**
+ * Loads per-day water totals for the past `days` days by summing waterEvent
+ * documents. Groups by UTC day key on the client side.
+ */
+export async function loadWaterHistory(
+  userId: string,
+  days = 30,
+): Promise<DailyWaterSummary[]> {
+  try {
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const q = query(
+      collection(db, 'waterEvents'),
+      where('userId', '==', userId),
+      where('loggedAt', '>=', cutoff),
+      orderBy('loggedAt', 'asc'),
+      limit(days * 20),  // at most 20 events per day
+    );
+    const snap = await getDocs(q);
+
+    const byDay = new Map<string, { totalMl: number; goalMl: number }>();
+    snap.docs.forEach(d => {
+      const ev = d.data() as { date: string; ml: number; goalMl?: number };
+      const existing = byDay.get(ev.date) ?? { totalMl: 0, goalMl: ev.goalMl ?? 0 };
+      byDay.set(ev.date, {
+        totalMl: existing.totalMl + ev.ml,
+        goalMl: ev.goalMl ?? existing.goalMl,
+      });
+    });
+
+    return Array.from(byDay.entries())
+      .map(([date, { totalMl, goalMl }]) => ({
+        date,
+        totalMl,
+        goalMl,
+        goalMet: goalMl > 0 && totalMl >= goalMl,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  } catch (e) {
+    console.error('[waterService] loadWaterHistory failed:', e);
+    return [];
+  }
 }

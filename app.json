@@ -29,7 +29,17 @@
           "remote-notification",
           "fetch"
         ],
-        "NSLocationWhenInUseUsageDescription": "Used to set weather-adjusted hydration goals."
+        "NSLocationWhenInUseUsageDescription": "Used to set weather-adjusted hydration goals.",
+        "NSHealthShareUsageDescription": "HabitLoop reads cycle and activity data to personalise your fasting recommendations.",
+        "NSHealthUpdateUsageDescription": "HabitLoop can log completed fasts and water intake to Apple Health."
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          }
+        ]
       }
     },
     "android": {
