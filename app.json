@@ -3,7 +3,7 @@
     "name": "HabitLoop",
     "slug": "habitloop",
     "scheme": "habitloop",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "plugins": [
@@ -20,6 +20,7 @@
     "ios": {
       "bundleIdentifier": "com.healthhabitloop.app",
       "supportsTablet": false,
+      "buildNumber": "2",
       "entitlements": {
         "aps-environment": "production"
       },
@@ -33,6 +34,7 @@
     },
     "android": {
       "package": "com.healthhabitloop.app",
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#6B21A8"
