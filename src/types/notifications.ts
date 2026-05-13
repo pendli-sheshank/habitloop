@@ -1,4 +1,4 @@
-export type NotificationChannel = 'fasting' | 'hydration';
+export type NotificationChannel = 'fasting' | 'hydration' | 'social';
 
 export interface ScheduledNotification {
   channel: NotificationChannel;

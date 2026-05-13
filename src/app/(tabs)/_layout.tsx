@@ -44,6 +44,24 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="cycle"
+        options={{
+          title: 'Cycle',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="heart-pulse" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="social"
+        options={{
+          title: 'Social',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="account-group-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',

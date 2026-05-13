@@ -41,6 +41,12 @@ export async function setupNotificationChannels(): Promise<void> {
     importance: N.AndroidImportance.DEFAULT,
     sound: 'default',
   });
+
+  await N.setNotificationChannelAsync('social', {
+    name: 'Group & Social',
+    importance: N.AndroidImportance.DEFAULT,
+    sound: 'default',
+  });
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
@@ -176,4 +182,73 @@ export async function scheduleFastingNotifications(
   for (const n of [...fasting, ...hydration]) {
     await scheduleNotification(n);
   }
+}
+
+// ─── Social notifications (Phase 2) ──────────────────────────────────────────
+
+/**
+ * Schedules a one-off notification for the moment a group challenge starts.
+ * Safe to call multiple times — does not cancel existing fasting notifications.
+ */
+export async function scheduleChallengeStartNotification(
+  groupName: string,
+  startDateISO: string,
+): Promise<void> {
+  const N = await getNotifications();
+  if (!N) return;
+
+  const triggerAt = new Date(startDateISO + 'T08:00:00').getTime();
+  if (triggerAt <= Date.now()) return;
+
+  await scheduleNotification({
+    channel: 'social',
+    title: 'Challenge starts today! 🏁',
+    body: `Your group "${groupName}" fasting challenge begins now. Good luck!`,
+    triggerAt,
+  });
+}
+
+/**
+ * Schedules a noon nudge for each day of the challenge window.
+ * Intended to remind users to start their fast if they haven't yet.
+ * Only schedules future nudges — skips past dates silently.
+ */
+export async function schedulePartnerNudges(
+  groupName: string,
+  startDateISO: string,
+  durationDays: number,
+): Promise<void> {
+  const N = await getNotifications();
+  if (!N) return;
+
+  const now = Date.now();
+  for (let i = 0; i < durationDays; i++) {
+    const day = new Date(startDateISO + 'T12:00:00');
+    day.setDate(day.getDate() + i);
+    const triggerAt = day.getTime();
+    if (triggerAt <= now) continue;
+
+    await scheduleNotification({
+      channel: 'social',
+      title: 'Time to start your fast 🤝',
+      body: `Your group "${groupName}" is counting on you. Start your fast now!`,
+      triggerAt,
+    });
+  }
+}
+
+/**
+ * Sends an immediate local notification warning that the group streak is frozen.
+ * Called when the client detects a member missed a check-in day.
+ */
+export async function notifyStreakFrozen(groupName: string): Promise<void> {
+  const N = await getNotifications();
+  if (!N) return;
+
+  await scheduleNotification({
+    channel: 'social',
+    title: 'Streak freeze activated ❄️',
+    body: `A member of "${groupName}" missed yesterday. Your streak is frozen for 24 hours.`,
+    triggerAt: Date.now() + 2000,
+  });
 }

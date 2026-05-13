@@ -2,8 +2,13 @@ import {
   doc,
   collection,
   getDoc,
+  getDocs,
   writeBatch,
   serverTimestamp,
+  query,
+  where,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { getUTCDayKey } from '@/utils/dateUtils';
@@ -74,4 +79,59 @@ export async function loadTodayWater(
     waterGoalMet: data.waterGoalMet,
     date: data.date,
   };
+}
+
+export interface DailyWaterSummary {
+  date: string;
+  totalMl: number;
+  goalMl: number;
+  goalMet: boolean;
+}
+
+/**
+ * Loads per-day water totals for the past `days` days.
+ * waterEvent docs store only { ml, date, loggedAt } — goalMl is not persisted
+ * per-event. We read the current goal from the today aggregate and apply it
+ * uniformly across history (best available approximation).
+ */
+export async function loadWaterHistory(
+  userId: string,
+  days = 30,
+): Promise<DailyWaterSummary[]> {
+  try {
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+
+    const [eventsSnap, todaySnap] = await Promise.all([
+      getDocs(query(
+        collection(db, 'waterEvents'),
+        where('userId', '==', userId),
+        where('loggedAt', '>=', cutoff),
+        orderBy('loggedAt', 'asc'),
+        limit(days * 20),
+      )),
+      getDoc(doc(db, 'users', userId, 'aggregates', 'today')),
+    ]);
+
+    const goalMl = todaySnap.exists()
+      ? ((todaySnap.data() as TodayAggregate).waterGoalMl ?? 0)
+      : 0;
+
+    const byDay = new Map<string, number>();
+    eventsSnap.docs.forEach(d => {
+      const ev = d.data() as { date: string; ml: number };
+      byDay.set(ev.date, (byDay.get(ev.date) ?? 0) + ev.ml);
+    });
+
+    return Array.from(byDay.entries())
+      .map(([date, totalMl]) => ({
+        date,
+        totalMl,
+        goalMl,
+        goalMet: goalMl > 0 && totalMl >= goalMl,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  } catch (e) {
+    console.error('[waterService] loadWaterHistory failed:', e);
+    return [];
+  }
 }

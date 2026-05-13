@@ -5,6 +5,11 @@ import {
   updateDoc,
   increment,
   serverTimestamp,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { calculateXpReward } from '@/services/fasting/fastingEngine';
@@ -82,4 +87,25 @@ export async function persistFastCompletion(
     xpTotal: increment(totalXpEarned),
     level: newLevel,
   });
+}
+
+/** Load the most recent `maxCount` completed fast sessions for a user. */
+export async function loadFastHistory(
+  userId: string,
+  maxCount = 90,
+): Promise<FastSession[]> {
+  try {
+    const q = query(
+      collection(db, 'fastSessions'),
+      where('userId', '==', userId),
+      where('completed', '==', true),
+      orderBy('startTime', 'desc'),
+      limit(maxCount),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<FastSession, 'id'>) }));
+  } catch (e) {
+    console.error('[fastingService] loadFastHistory failed:', e);
+    return [];
+  }
 }

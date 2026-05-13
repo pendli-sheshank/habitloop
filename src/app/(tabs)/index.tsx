@@ -1,7 +1,9 @@
 import React, { useCallback } from 'react';
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { AppColors, AppSpacing, AppFontSize } from '@/constants/theme';
@@ -22,6 +24,7 @@ import { StreakCounter } from '@/components/shared/StreakCounter';
 import type { FastingProtocol, FastCompletionResult } from '@/types/fasting';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const userId = useUserStore(s => s.user?.uid);
   const streakAggregate = useUserStore(s => s.streakAggregate);
 
@@ -202,6 +205,16 @@ export default function HomeScreen() {
         </View>
 
         <StreakCounter />
+
+        <TouchableOpacity
+          style={styles.historyLink}
+          onPress={() => router.push('/fast-history')}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="history" size={16} color={AppColors.primary} />
+          <Text style={styles.historyLinkText}>View fast history</Text>
+          <MaterialCommunityIcons name="chevron-right" size={16} color={AppColors.primary} />
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -237,6 +250,16 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontSize: AppFontSize.lg,
+    fontWeight: '600',
+  },
+  historyLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.xs,
+  },
+  historyLinkText: {
+    fontSize: AppFontSize.sm,
+    color: AppColors.primary,
     fontWeight: '600',
   },
 });
