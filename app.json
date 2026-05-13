@@ -34,7 +34,7 @@
     },
     "android": {
       "package": "com.healthhabitloop.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#6B21A8"
@@ -48,6 +48,9 @@
       ]
     },
     "extra": {
+      "router": {
+        "root": "src"
+      },
       "eas": {
         "projectId": "d98013b8-a5b8-4d4d-8350-efcc0577bdd0"
       }
