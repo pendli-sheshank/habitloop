@@ -143,8 +143,10 @@ export default function HomeScreen() {
         <FastingTimer
           remainingMs={timer.remainingMs}
           elapsedMs={timer.elapsedMs}
+          overtimeMs={timer.overtimeMs}
           progress={timer.progress}
           isActive={timer.isActive}
+          isComplete={timer.isComplete}
           stageLabel={timer.stage.label}
           stageColor={timer.stage.color}
         />

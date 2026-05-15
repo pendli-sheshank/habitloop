@@ -13,6 +13,7 @@ import type { FastingStage } from '@/types/fasting';
 interface FastingTimerState {
   elapsedMs: number;
   remainingMs: number;
+  overtimeMs: number;
   progress: number;
   stage: FastingStage;
   isActive: boolean;
@@ -64,6 +65,10 @@ export function useFastingTimer(): FastingTimerState {
     ? isFastComplete(activeFast.startTime, activeFast.targetDurationMs)
     : false;
 
+  const overtimeMs = (activeFast && isComplete)
+    ? Math.max(0, elapsedMs - activeFast.targetDurationMs)
+    : 0;
+
   const stage = activeFast
     ? getFastingStage(elapsedMs)
     : IDLE_STAGE;
@@ -71,6 +76,7 @@ export function useFastingTimer(): FastingTimerState {
   return {
     elapsedMs,
     remainingMs,
+    overtimeMs,
     progress,
     stage,
     isActive: !!activeFast,

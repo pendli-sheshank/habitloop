@@ -7,7 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useColorScheme } from 'react-native';
 
 import { auth } from '@/services/firebase';
-import { loadUserProfile, initializeUserProfile } from '@/services/auth/profileService';
+import { loadUserProfile, loadUserSettings, initializeUserProfile } from '@/services/auth/profileService';
 import { useUserStore } from '@/stores/user/useUserStore';
 import { getRouteRedirect } from '@/utils/routeGuard';
 import { useWaterSync } from '@/hooks/useWaterSync';
@@ -57,7 +57,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      const { setAuthStatus, setUser, setProfile, clearAuth } = useUserStore.getState();
+      const { setAuthStatus, setUser, setProfile, setGender, clearAuth } = useUserStore.getState();
 
       if (!firebaseUser) {
         clearAuth();
@@ -88,6 +88,10 @@ export default function RootLayout() {
       } else {
         setProfile(profile);
         setAuthStatus('authenticated');
+        // Load gender from settings so the Cycle tab can be hidden for non-female users
+        loadUserSettings(firebaseUser.uid)
+          .then(settings => { if (settings) setGender(settings.gender); })
+          .catch(() => {});
       }
     });
 
