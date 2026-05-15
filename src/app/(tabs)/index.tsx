@@ -6,16 +6,17 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-import { AppColors, AppSpacing, AppFontSize } from '@/constants/theme';
+import { AppColors, AppSpacing, AppFontSize, AppRadius } from '@/constants/theme';
 import { useUserStore } from '@/stores/user/useUserStore';
 import { useFastingStore } from '@/stores/fasting/useFastingStore';
 import { useFastingTimer } from '@/hooks/useFastingTimer';
 import { useFastingResync } from '@/hooks/useFastingResync';
-import { getProtocolDurationMs, calculateEatingWindowEnd } from '@/services/fasting/fastingEngine';
+import { getProtocolDurationMs, calculateEatingWindowEnd, needsElectrolytes, needsMedicalSupervision } from '@/services/fasting/fastingEngine';
 import { saveFastSession, persistFastCompletion } from '@/services/fasting/fastingService';
 import { scheduleFastingNotifications } from '@/services/notifications/notificationService';
 import { updateStreak } from '@/services/fasting/streakEngine';
-import { calcFastXp, calcStreakBonusXp } from '@/services/fasting/xpEngine';
+import { calcFastXp, calcStreakBonusXp, getStreakMultiplier } from '@/services/fasting/xpEngine';
+import { getNextUnlock, getProtocolMeta } from '@/constants/protocols';
 import { getUTCDayKey } from '@/utils/dateUtils';
 import { FastingTimer } from '@/components/fasting/FastingTimer';
 import { ProtocolPicker } from '@/components/fasting/ProtocolPicker';
@@ -31,10 +32,12 @@ export default function HomeScreen() {
   const activeFast = useFastingStore(s => s.activeFast);
   const selectedProtocol = useFastingStore(s => s.selectedProtocol);
   const completedToday = useFastingStore(s => s.completedToday);
+  const totalCompletedFasts = useFastingStore(s => s.totalCompletedFasts);
   const setSelectedProtocol = useFastingStore(s => s.setSelectedProtocol);
   const startFast = useFastingStore(s => s.startFast);
   const completeFast = useFastingStore(s => s.completeFast);
   const cancelFast = useFastingStore(s => s.cancelFast);
+  const incrementCompletedFasts = useFastingStore(s => s.incrementCompletedFasts);
 
   const timer = useFastingTimer();
 
@@ -60,7 +63,8 @@ export default function HomeScreen() {
   const handleCompleteFast = useCallback(async () => {
     if (!activeFast || !userId) return;
 
-    const xpEarned = calcFastXp(activeFast.protocol, true);
+    const streakDays = streakAggregate?.currentStreakDays ?? 0;
+    const xpEarned = calcFastXp(activeFast.protocol, true, streakDays);
     const today = getUTCDayKey(Date.now());
 
     let newStreak = 1;
@@ -78,18 +82,22 @@ export default function HomeScreen() {
       bonusXp = calcStreakBonusXp(newStreak);
     }
 
+    const streakMultiplier = getStreakMultiplier(newStreak);
+
     const result: FastCompletionResult = {
       xpEarned,
       bonusXp,
+      streakMultiplier,
       newStreak,
       longestStreak,
     };
 
     completeFast(result);
+    incrementCompletedFasts();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     try {
-      await saveFastSession(userId, activeFast, true);
+      await saveFastSession(userId, activeFast, true, streakMultiplier);
       await persistFastCompletion(
         userId,
         result,
@@ -98,7 +106,7 @@ export default function HomeScreen() {
     } catch (e) {
       console.error('[HomeScreen] Failed to save fast session:', e);
     }
-  }, [activeFast, userId, streakAggregate, completeFast]);
+  }, [activeFast, userId, streakAggregate, completeFast, incrementCompletedFasts]);
 
   const handleCancelFast = useCallback(() => {
     Alert.alert(
@@ -132,6 +140,14 @@ export default function HomeScreen() {
     ? calculateEatingWindowEnd(activeFast.startTime, activeFast.targetDurationMs)
     : null;
 
+  const selectedMeta = getProtocolMeta(selectedProtocol);
+  const selectedNeedsElectrolytes = needsElectrolytes(selectedProtocol);
+  const selectedNeedsMedical = needsMedicalSupervision(selectedProtocol);
+  const nextUnlock = getNextUnlock(totalCompletedFasts);
+
+  // Electrolyte reminder applies to active fast when protocol is 36h+
+  const activeNeedsElectrolytes = activeFast ? needsElectrolytes(activeFast.protocol) : false;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -143,18 +159,55 @@ export default function HomeScreen() {
         <FastingTimer
           remainingMs={timer.remainingMs}
           elapsedMs={timer.elapsedMs}
+          overtimeMs={timer.overtimeMs}
           progress={timer.progress}
           isActive={timer.isActive}
+          isComplete={timer.isComplete}
           stageLabel={timer.stage.label}
           stageColor={timer.stage.color}
+          stageDescription={timer.stage.description}
+          needsElectrolytes={activeNeedsElectrolytes}
         />
 
         {!timer.isActive && (
-          <ProtocolPicker
-            selected={selectedProtocol}
-            onSelect={handleProtocolSelect}
-            disabled={timer.isActive}
-          />
+          <>
+            {/* Smart recommendation when no fast is active */}
+            {nextUnlock && !completedToday && (
+              <View style={styles.recommendationBanner}>
+                <MaterialCommunityIcons name="lightning-bolt" size={16} color={AppColors.warning} />
+                <Text style={styles.recommendationText}>
+                  Complete {nextUnlock.fastsNeeded} more fast{nextUnlock.fastsNeeded !== 1 ? 's' : ''} to unlock{' '}
+                  <Text style={styles.recommendationBold}>{nextUnlock.protocol.label}</Text>
+                </Text>
+              </View>
+            )}
+
+            {/* Electrolyte warning before starting extended fasts */}
+            {selectedNeedsElectrolytes && (
+              <View style={styles.electrolyteWarning}>
+                <Text style={styles.electrolyteWarningText}>
+                  💧 {selectedMeta.label} requires electrolytes (sodium, potassium, magnesium).
+                </Text>
+              </View>
+            )}
+
+            {/* Medical supervision warning for extreme fasts */}
+            {selectedNeedsMedical && (
+              <View style={styles.medicalWarning}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={16} color={AppColors.danger} />
+                <Text style={styles.medicalWarningText}>
+                  {selectedMeta.warningText ?? 'Medical supervision required for this protocol.'}
+                </Text>
+              </View>
+            )}
+
+            <ProtocolPicker
+              selected={selectedProtocol}
+              onSelect={handleProtocolSelect}
+              totalCompletedFasts={totalCompletedFasts}
+              disabled={timer.isActive}
+            />
+          </>
         )}
 
         {timer.isActive && eatingWindowEnd && (
@@ -235,6 +288,49 @@ const styles = StyleSheet.create({
     fontSize: AppFontSize.xxl,
     fontWeight: '700',
     color: AppColors.dark,
+  },
+  recommendationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.xs,
+    backgroundColor: '#FEF3C7',
+    borderRadius: AppRadius.md,
+    padding: AppSpacing.md,
+    width: '100%',
+  },
+  recommendationText: {
+    fontSize: AppFontSize.sm,
+    color: AppColors.text,
+    flex: 1,
+  },
+  recommendationBold: {
+    fontWeight: '700',
+  },
+  electrolyteWarning: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: AppRadius.md,
+    padding: AppSpacing.md,
+    width: '100%',
+  },
+  electrolyteWarningText: {
+    fontSize: AppFontSize.sm,
+    color: '#2563EB',
+    lineHeight: 18,
+  },
+  medicalWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: AppSpacing.xs,
+    backgroundColor: '#FEF2F2',
+    borderRadius: AppRadius.md,
+    padding: AppSpacing.md,
+    width: '100%',
+  },
+  medicalWarningText: {
+    fontSize: AppFontSize.sm,
+    color: AppColors.danger,
+    flex: 1,
+    lineHeight: 18,
   },
   buttonRow: {
     width: '100%',

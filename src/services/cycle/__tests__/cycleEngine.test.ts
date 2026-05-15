@@ -166,7 +166,7 @@ describe('getDayOfCycle', () => {
 describe('getFastingRecommendation', () => {
   it('menstruation → 12:12 + avoid', () => {
     const rec = getFastingRecommendation(CyclePhase.MENSTRUATION);
-    expect(rec.recommendedProtocol).toBe('12:12');
+    expect(rec.recommendedProtocol).toBe('circadian');
     expect(rec.warningLevel).toBe('avoid');
     expect(rec.phase).toBe(CyclePhase.MENSTRUATION);
     expect(rec.message.length).toBeGreaterThan(0);
@@ -186,7 +186,7 @@ describe('getFastingRecommendation', () => {
 
   it('luteal → 14:10 + caution', () => {
     const rec = getFastingRecommendation(CyclePhase.LUTEAL);
-    expect(rec.recommendedProtocol).toBe('14:10');
+    expect(rec.recommendedProtocol).toBe('15:9');
     expect(rec.warningLevel).toBe('caution');
   });
 
@@ -208,11 +208,11 @@ describe('getFastingRecommendation', () => {
 describe('shouldWarnForProtocol', () => {
   describe('menstruation (recommended 12:12)', () => {
     it('12:12 → no warning', () => {
-      expect(shouldWarnForProtocol(CyclePhase.MENSTRUATION, '12:12')).toBe(false);
+      expect(shouldWarnForProtocol(CyclePhase.MENSTRUATION, 'circadian')).toBe(false);
     });
 
     it('14:10 → warn (14 > 12)', () => {
-      expect(shouldWarnForProtocol(CyclePhase.MENSTRUATION, '14:10')).toBe(true);
+      expect(shouldWarnForProtocol(CyclePhase.MENSTRUATION, '15:9')).toBe(true);
     });
 
     it('16:8 → warn (16 > 12)', () => {
@@ -226,17 +226,17 @@ describe('shouldWarnForProtocol', () => {
     });
 
     it('14:10 → no warning (14 < 16)', () => {
-      expect(shouldWarnForProtocol(CyclePhase.FOLLICULAR, '14:10')).toBe(false);
+      expect(shouldWarnForProtocol(CyclePhase.FOLLICULAR, '15:9')).toBe(false);
     });
 
     it('12:12 → no warning (12 < 16)', () => {
-      expect(shouldWarnForProtocol(CyclePhase.FOLLICULAR, '12:12')).toBe(false);
+      expect(shouldWarnForProtocol(CyclePhase.FOLLICULAR, 'circadian')).toBe(false);
     });
   });
 
   describe('luteal (recommended 14:10)', () => {
     it('14:10 → no warning', () => {
-      expect(shouldWarnForProtocol(CyclePhase.LUTEAL, '14:10')).toBe(false);
+      expect(shouldWarnForProtocol(CyclePhase.LUTEAL, '15:9')).toBe(false);
     });
 
     it('16:8 → warn (16 > 14)', () => {
@@ -244,7 +244,7 @@ describe('shouldWarnForProtocol', () => {
     });
 
     it('12:12 → no warning (12 < 14)', () => {
-      expect(shouldWarnForProtocol(CyclePhase.LUTEAL, '12:12')).toBe(false);
+      expect(shouldWarnForProtocol(CyclePhase.LUTEAL, 'circadian')).toBe(false);
     });
   });
 
@@ -254,7 +254,7 @@ describe('shouldWarnForProtocol', () => {
     });
 
     it('14:10 → no warning (14 < 16)', () => {
-      expect(shouldWarnForProtocol(CyclePhase.OVULATION, '14:10')).toBe(false);
+      expect(shouldWarnForProtocol(CyclePhase.OVULATION, '15:9')).toBe(false);
     });
   });
 });

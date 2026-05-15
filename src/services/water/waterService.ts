@@ -3,11 +3,11 @@ import {
   collection,
   getDoc,
   getDocs,
+  setDoc,
   writeBatch,
   serverTimestamp,
   query,
   where,
-  orderBy,
   limit,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
@@ -37,12 +37,12 @@ export async function saveWaterEvent(
   });
 
   const todayRef = doc(db, 'users', userId, 'aggregates', 'today');
-  batch.update(todayRef, {
+  batch.set(todayRef, {
     date,
     waterMl: newTotalMl,
     waterGoalMl: goalMl,
     waterGoalMet: goalMet,
-  });
+  }, { merge: true });
 
   await batch.commit();
 }
@@ -56,9 +56,9 @@ export async function awardHydrationXp(userId: string): Promise<void> {
   const newXpTotal = current.xpTotal + HYDRATION_GOAL_XP;
   const newLevel = calcLevelFromXp(newXpTotal);
 
-  await writeBatch(db)
-    .update(streakRef, { xpTotal: newXpTotal, level: newLevel })
-    .commit();
+  const batch = writeBatch(db);
+  batch.set(streakRef, { xpTotal: newXpTotal, level: newLevel }, { merge: true });
+  await batch.commit();
 }
 
 export async function loadTodayWater(
@@ -90,23 +90,20 @@ export interface DailyWaterSummary {
 
 /**
  * Loads per-day water totals for the past `days` days.
- * waterEvent docs store only { ml, date, loggedAt } — goalMl is not persisted
- * per-event. We read the current goal from the today aggregate and apply it
- * uniformly across history (best available approximation).
+ * Single equality filter avoids composite index requirement; date-range
+ * filtering and sorting happen client-side.
  */
 export async function loadWaterHistory(
   userId: string,
   days = 30,
 ): Promise<DailyWaterSummary[]> {
   try {
-    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const cutoffDate = getUTCDayKey(Date.now() - days * 24 * 60 * 60 * 1000);
 
     const [eventsSnap, todaySnap] = await Promise.all([
       getDocs(query(
         collection(db, 'waterEvents'),
         where('userId', '==', userId),
-        where('loggedAt', '>=', cutoff),
-        orderBy('loggedAt', 'asc'),
         limit(days * 20),
       )),
       getDoc(doc(db, 'users', userId, 'aggregates', 'today')),
@@ -119,7 +116,9 @@ export async function loadWaterHistory(
     const byDay = new Map<string, number>();
     eventsSnap.docs.forEach(d => {
       const ev = d.data() as { date: string; ml: number };
-      byDay.set(ev.date, (byDay.get(ev.date) ?? 0) + ev.ml);
+      if (ev.date >= cutoffDate) {
+        byDay.set(ev.date, (byDay.get(ev.date) ?? 0) + ev.ml);
+      }
     });
 
     return Array.from(byDay.entries())

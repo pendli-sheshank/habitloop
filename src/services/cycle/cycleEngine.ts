@@ -2,6 +2,7 @@ import { differenceInDays, parseISO, isValid } from 'date-fns';
 import { CyclePhase } from '@/types/cycle';
 import type { CyclePhaseType, PhaseRecommendation } from '@/types/cycle';
 import type { FastingProtocol } from '@/types/fasting';
+import { PROTOCOL_HOURS } from '@/services/fasting/fastingEngine';
 
 /**
  * Derives the current cycle phase from the last period start date.
@@ -76,9 +77,9 @@ export function getDayOfCycle(lastPeriodStartISO: string, avgCycleLength = 28): 
 const RECOMMENDATIONS: Record<CyclePhaseType, PhaseRecommendation> = {
   menstruation: {
     phase:               CyclePhase.MENSTRUATION,
-    recommendedProtocol: '12:12',
+    recommendedProtocol: 'circadian',
     warningLevel:        'avoid',
-    message:             'Your body needs extra care. Stick to a gentle 12:12 and prioritise recovery.',
+    message:             'Your body needs extra care. Stick to a gentle Circadian fast and prioritise recovery.',
   },
   follicular: {
     phase:               CyclePhase.FOLLICULAR,
@@ -94,7 +95,7 @@ const RECOMMENDATIONS: Record<CyclePhaseType, PhaseRecommendation> = {
   },
   luteal: {
     phase:               CyclePhase.LUTEAL,
-    recommendedProtocol: '14:10',
+    recommendedProtocol: '15:9',
     warningLevel:        'caution',
     message:             'Appetite increases are normal. Shorter windows reduce hormonal stress.',
   },
@@ -112,14 +113,8 @@ export function shouldWarnForProtocol(
   phase: CyclePhaseType,
   selectedProtocol: FastingProtocol,
 ): boolean {
-  const FAST_HOURS: Record<string, number> = {
-    '12:12': 12,
-    '14:10': 14,
-    '16:8':  16,
-    'custom': 16,
-  };
   const recommended = RECOMMENDATIONS[phase].recommendedProtocol;
-  return FAST_HOURS[selectedProtocol] > FAST_HOURS[recommended];
+  return (PROTOCOL_HOURS[selectedProtocol] ?? 16) > (PROTOCOL_HOURS[recommended] ?? 16);
 }
 
 /**

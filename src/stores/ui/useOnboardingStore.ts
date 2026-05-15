@@ -1,19 +1,20 @@
 import { create } from 'zustand';
 import type { Gender, OnboardingData } from '@/types/auth';
+import type { FastingProtocol } from '@/types/fasting';
 
 interface OnboardingState {
   displayName: string;
   gender: Gender;
   weightKg: number;
   activityLevel: 'low' | 'moderate' | 'high';
-  defaultProtocol: '12:12' | '14:10' | '16:8';
+  defaultProtocol: FastingProtocol;
   lastPeriodStart: string | null;
   notificationsEnabled: boolean;
 
   setDisplayName: (name: string) => void;
   setGender: (gender: Gender) => void;
   setBodyStats: (weightKg: number, activityLevel: 'low' | 'moderate' | 'high') => void;
-  setProtocol: (protocol: '12:12' | '14:10' | '16:8') => void;
+  setProtocol: (protocol: FastingProtocol) => void;
   setCycleAndNotifications: (lastPeriodStart: string | null, notificationsEnabled: boolean) => void;
   toOnboardingData: () => OnboardingData;
   reset: () => void;
@@ -30,7 +31,7 @@ const initialState = {
   gender: 'female' as Gender,
   weightKg: 0,
   activityLevel: 'moderate' as const,
-  defaultProtocol: '16:8' as const,
+  defaultProtocol: '16:8' as FastingProtocol,
   lastPeriodStart: null,
   notificationsEnabled: false,
 };

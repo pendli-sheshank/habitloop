@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppColors, AppFontSize } from '@/constants/theme';
+import { useUserStore } from '@/stores/user/useUserStore';
 
 type TabIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -9,6 +10,7 @@ function TabIcon({ name, color, size }: { name: TabIconName; color: string; size
 }
 
 export default function TabsLayout() {
+  const gender = useUserStore(s => s.gender);
   return (
     <Tabs
       screenOptions={{
@@ -46,6 +48,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="cycle"
         options={{
+          href: gender === 'female' ? undefined : null,
           title: 'Cycle',
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="heart-pulse" color={color} size={size} />

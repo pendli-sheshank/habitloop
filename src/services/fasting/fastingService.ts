@@ -2,13 +2,13 @@ import {
   doc,
   collection,
   writeBatch,
+  setDoc,
   updateDoc,
   increment,
   serverTimestamp,
   getDocs,
   query,
   where,
-  orderBy,
   limit,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
@@ -21,6 +21,7 @@ export function buildFastSession(
   userId: string,
   activeFast: ActiveFastState,
   completed: boolean,
+  streakMultiplier = 1,
 ): Omit<FastSession, 'id'> {
   const now = Date.now();
   return {
@@ -31,6 +32,7 @@ export function buildFastSession(
     protocol: activeFast.protocol,
     completed,
     xpEarned: completed ? calculateXpReward(activeFast.protocol) : 0,
+    streakMultiplier,
     cyclePhaseAtStart: null,
     createdAt: now,
   };
@@ -40,8 +42,9 @@ export async function saveFastSession(
   userId: string,
   activeFast: ActiveFastState,
   completed: boolean,
+  streakMultiplier = 1,
 ): Promise<void> {
-  const session = buildFastSession(userId, activeFast, completed);
+  const session = buildFastSession(userId, activeFast, completed, streakMultiplier);
   const today = getUTCDayKey(Date.now());
 
   const batch = writeBatch(db);
@@ -54,11 +57,11 @@ export async function saveFastSession(
 
   if (completed) {
     const todayRef = doc(db, 'users', userId, 'aggregates', 'today');
-    batch.update(todayRef, {
+    batch.set(todayRef, {
       date: today,
       fastCompleted: true,
       fastProtocol: activeFast.protocol,
-    });
+    }, { merge: true });
   }
 
   await batch.commit();
@@ -80,13 +83,13 @@ export async function persistFastCompletion(
   const newLevel = calcLevelFromXp(newXpTotal);
 
   const streakRef = doc(db, 'users', userId, 'aggregates', 'streak');
-  await updateDoc(streakRef, {
+  await setDoc(streakRef, {
     currentStreakDays: result.newStreak,
     longestStreakDays: result.longestStreak,
     lastStreakDate: today,
     xpTotal: increment(totalXpEarned),
     level: newLevel,
-  });
+  }, { merge: true });
 }
 
 /** Load the most recent `maxCount` completed fast sessions for a user. */
@@ -95,15 +98,19 @@ export async function loadFastHistory(
   maxCount = 90,
 ): Promise<FastSession[]> {
   try {
+    // Single equality filter avoids the composite index requirement.
+    // Filtering and sorting happen client-side.
     const q = query(
       collection(db, 'fastSessions'),
       where('userId', '==', userId),
-      where('completed', '==', true),
-      orderBy('startTime', 'desc'),
-      limit(maxCount),
+      limit(maxCount * 3),
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<FastSession, 'id'>) }));
+    return snap.docs
+      .map(d => ({ id: d.id, ...(d.data() as Omit<FastSession, 'id'>) }))
+      .filter(s => s.completed)
+      .sort((a, b) => b.startTime - a.startTime)
+      .slice(0, maxCount);
   } catch (e) {
     console.error('[fastingService] loadFastHistory failed:', e);
     return [];

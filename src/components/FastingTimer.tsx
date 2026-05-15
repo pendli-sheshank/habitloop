@@ -75,6 +75,7 @@ export function FastingTimer({ onFastComplete }: Props) {
         protocol: activeFast.protocol,
         completed: true,
         xpEarned: 0,
+        streakMultiplier: 1,
         cyclePhaseAtStart: null,
         createdAt: now,
       };
@@ -82,7 +83,7 @@ export function FastingTimer({ onFastComplete }: Props) {
       completeFast(result);
     } catch (e) {
       console.error('[FastingTimer] Failed to record completion:', e);
-      completeFast({ xpEarned: 0, bonusXp: 0, newStreak: 0, longestStreak: 0 });
+      completeFast({ xpEarned: 0, bonusXp: 0, streakMultiplier: 1, newStreak: 0, longestStreak: 0 });
     }
     onFastComplete?.();
   }

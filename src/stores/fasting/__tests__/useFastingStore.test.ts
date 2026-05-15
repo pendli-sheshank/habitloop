@@ -10,6 +10,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 const mockResult: FastCompletionResult = {
   xpEarned: 80,
   bonusXp: 0,
+  streakMultiplier: 1,
   newStreak: 1,
   longestStreak: 1,
 };
@@ -35,24 +36,28 @@ describe('useFastingStore', () => {
     it('has not completed today', () => {
       expect(useFastingStore.getState().completedToday).toBe(false);
     });
+
+    it('starts with 0 total completed fasts', () => {
+      expect(useFastingStore.getState().totalCompletedFasts).toBe(0);
+    });
   });
 
   describe('setSelectedProtocol', () => {
     it('updates selected protocol', () => {
-      useFastingStore.getState().setSelectedProtocol('12:12');
-      expect(useFastingStore.getState().selectedProtocol).toBe('12:12');
+      useFastingStore.getState().setSelectedProtocol('circadian');
+      expect(useFastingStore.getState().selectedProtocol).toBe('circadian');
     });
   });
 
   describe('startFast', () => {
     it('sets active fast with startTime, protocol, and duration', () => {
       const before = Date.now();
-      useFastingStore.getState().startFast('14:10', 14 * 3_600_000);
+      useFastingStore.getState().startFast('15:9', 15 * 3_600_000);
       const state = useFastingStore.getState();
 
       expect(state.activeFast).not.toBeNull();
-      expect(state.activeFast!.protocol).toBe('14:10');
-      expect(state.activeFast!.targetDurationMs).toBe(14 * 3_600_000);
+      expect(state.activeFast!.protocol).toBe('15:9');
+      expect(state.activeFast!.targetDurationMs).toBe(15 * 3_600_000);
       expect(state.activeFast!.startTime).toBeGreaterThanOrEqual(before);
     });
   });
@@ -85,7 +90,7 @@ describe('useFastingStore', () => {
     it('resets completedToday without clearing active fast', () => {
       useFastingStore.getState().startFast('16:8', 16 * 3_600_000);
       useFastingStore.getState().completeFast(mockResult);
-      useFastingStore.getState().startFast('12:12', 12 * 3_600_000);
+      useFastingStore.getState().startFast('circadian', 13 * 3_600_000);
       useFastingStore.getState().resetDaily();
       const state = useFastingStore.getState();
 
@@ -96,9 +101,9 @@ describe('useFastingStore', () => {
 
   describe('clearFasting', () => {
     it('resets all state to defaults', () => {
-      useFastingStore.getState().startFast('14:10', 14 * 3_600_000);
+      useFastingStore.getState().startFast('15:9', 15 * 3_600_000);
       useFastingStore.getState().completeFast(mockResult);
-      useFastingStore.getState().setSelectedProtocol('12:12');
+      useFastingStore.getState().setSelectedProtocol('18:6');
       useFastingStore.getState().clearFasting();
       const state = useFastingStore.getState();
 
@@ -106,6 +111,17 @@ describe('useFastingStore', () => {
       expect(state.lastCompletedAt).toBeNull();
       expect(state.selectedProtocol).toBe('16:8');
       expect(state.completedToday).toBe(false);
+      expect(state.totalCompletedFasts).toBe(0);
+    });
+  });
+
+  describe('incrementCompletedFasts', () => {
+    it('increments totalCompletedFasts', () => {
+      expect(useFastingStore.getState().totalCompletedFasts).toBe(0);
+      useFastingStore.getState().incrementCompletedFasts();
+      expect(useFastingStore.getState().totalCompletedFasts).toBe(1);
+      useFastingStore.getState().incrementCompletedFasts();
+      expect(useFastingStore.getState().totalCompletedFasts).toBe(2);
     });
   });
 });
