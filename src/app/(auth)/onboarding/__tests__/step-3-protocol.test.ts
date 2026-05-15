@@ -7,7 +7,7 @@ describe('step-3-protocol store integration', () => {
   });
 
   describe('setProtocol persists selection', () => {
-    it.each(['12:12', '14:10', '16:8'] as const)(
+    it.each(['circadian', '15:9', '16:8'] as const)(
       'stores %s protocol',
       (protocol) => {
         useOnboardingStore.getState().setProtocol(protocol);
@@ -24,23 +24,23 @@ describe('step-3-protocol store integration', () => {
 
   describe('protocol survives other field changes', () => {
     it('retains protocol after setting body stats', () => {
-      useOnboardingStore.getState().setProtocol('12:12');
+      useOnboardingStore.getState().setProtocol('circadian');
       useOnboardingStore.getState().setBodyStats(70, 'high');
 
-      expect(useOnboardingStore.getState().defaultProtocol).toBe('12:12');
+      expect(useOnboardingStore.getState().defaultProtocol).toBe('circadian');
     });
 
     it('retains protocol after setting display name', () => {
-      useOnboardingStore.getState().setProtocol('14:10');
+      useOnboardingStore.getState().setProtocol('15:9');
       useOnboardingStore.getState().setDisplayName('Jane');
 
-      expect(useOnboardingStore.getState().defaultProtocol).toBe('14:10');
+      expect(useOnboardingStore.getState().defaultProtocol).toBe('15:9');
     });
   });
 
   describe('protocol overwrites on re-entry', () => {
     it('allows changing protocol selection', () => {
-      useOnboardingStore.getState().setProtocol('12:12');
+      useOnboardingStore.getState().setProtocol('circadian');
       useOnboardingStore.getState().setProtocol('16:8');
 
       expect(useOnboardingStore.getState().defaultProtocol).toBe('16:8');
@@ -49,33 +49,48 @@ describe('step-3-protocol store integration', () => {
 
   describe('protocol included in onboarding data', () => {
     it('assembles selected protocol into OnboardingData', () => {
-      useOnboardingStore.getState().setProtocol('14:10');
+      useOnboardingStore.getState().setProtocol('15:9');
       const data = useOnboardingStore.getState().toOnboardingData();
 
-      expect(data.defaultProtocol).toBe('14:10');
+      expect(data.defaultProtocol).toBe('15:9');
     });
   });
 });
 
 describe('PROTOCOL_OPTIONS constants', () => {
-  it('has exactly 3 options', () => {
-    expect(PROTOCOL_OPTIONS).toHaveLength(3);
+  it('has 12 protocols', () => {
+    expect(PROTOCOL_OPTIONS).toHaveLength(12);
   });
 
-  it('contains all three protocols', () => {
+  it('includes all daily TRF protocols', () => {
     const values = PROTOCOL_OPTIONS.map(o => o.value);
-    expect(values).toEqual(['12:12', '14:10', '16:8']);
+    expect(values).toContain('circadian');
+    expect(values).toContain('15:9');
+    expect(values).toContain('16:8');
+    expect(values).toContain('18:6');
+    expect(values).toContain('20:4');
+    expect(values).toContain('omad');
   });
 
-  it('fast + eat hours sum to 24 for each protocol', () => {
-    for (const opt of PROTOCOL_OPTIONS) {
-      expect(opt.fastHours + opt.eatHours).toBe(24);
-    }
+  it('includes all extended protocols', () => {
+    const values = PROTOCOL_OPTIONS.map(o => o.value);
+    expect(values).toContain('24h');
+    expect(values).toContain('36h');
+    expect(values).toContain('48h');
+    expect(values).toContain('72h');
+    expect(values).toContain('120h');
+    expect(values).toContain('168h');
   });
 
   it('every option has a non-empty description', () => {
     for (const opt of PROTOCOL_OPTIONS) {
       expect(opt.description.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('every option has a positive fastHours', () => {
+    for (const opt of PROTOCOL_OPTIONS) {
+      expect(opt.fastHours).toBeGreaterThan(0);
     }
   });
 });

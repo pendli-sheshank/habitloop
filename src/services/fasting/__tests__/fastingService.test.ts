@@ -4,7 +4,7 @@ import type { ActiveFastState, FastCompletionResult } from '@/types/fasting';
 const mockBatchSet = jest.fn();
 const mockBatchUpdate = jest.fn();
 const mockBatchCommit = jest.fn().mockResolvedValue(undefined);
-const mockUpdateDoc = jest.fn().mockResolvedValue(undefined);
+const mockSetDoc = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('firebase/firestore', () => {
   function MockTimestamp() {}
@@ -18,7 +18,7 @@ jest.mock('firebase/firestore', () => {
     })),
     serverTimestamp: jest.fn(() => '__SERVER_TIMESTAMP__'),
     increment: jest.fn((n: number) => ({ __increment: n })),
-    updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
+    setDoc: (...args: unknown[]) => mockSetDoc(...args),
     Timestamp: MockTimestamp,
   };
 });
@@ -57,11 +57,11 @@ describe('buildFastSession', () => {
   });
 
   it('uses correct XP for different protocols', () => {
-    const fast12: ActiveFastState = { ...mockActiveFast, protocol: '12:12' };
-    const fast14: ActiveFastState = { ...mockActiveFast, protocol: '14:10' };
+    const fastCircadian: ActiveFastState = { ...mockActiveFast, protocol: 'circadian' };
+    const fast15: ActiveFastState = { ...mockActiveFast, protocol: '15:9' };
 
-    expect(buildFastSession('uid-1', fast12, true).xpEarned).toBe(30);
-    expect(buildFastSession('uid-1', fast14, true).xpEarned).toBe(50);
+    expect(buildFastSession('uid-1', fastCircadian, true).xpEarned).toBe(65);
+    expect(buildFastSession('uid-1', fast15, true).xpEarned).toBe(75);
   });
 });
 
@@ -71,7 +71,8 @@ describe('saveFastSession', () => {
   it('writes session doc to fastSessions collection', async () => {
     await saveFastSession('uid-1', mockActiveFast, true);
 
-    expect(mockBatchSet).toHaveBeenCalledTimes(1);
+    // batch.set called twice: once for session, once for today aggregate (set+merge)
+    expect(mockBatchSet).toHaveBeenCalledTimes(2);
     const sessionData = mockBatchSet.mock.calls[0][1];
     expect(sessionData.userId).toBe('uid-1');
     expect(sessionData.protocol).toBe('16:8');
@@ -79,17 +80,16 @@ describe('saveFastSession', () => {
     expect(sessionData.createdAt).toBe('__SERVER_TIMESTAMP__');
   });
 
-  it('updates today aggregate when completed', async () => {
+  it('sets today aggregate with merge when completed', async () => {
     await saveFastSession('uid-1', mockActiveFast, true);
 
-    expect(mockBatchUpdate).toHaveBeenCalledTimes(1);
-    const updateData = mockBatchUpdate.mock.calls[0][1];
-    expect(updateData.fastCompleted).toBe(true);
-    expect(updateData.fastProtocol).toBe('16:8');
-    expect(updateData.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const todayData = mockBatchSet.mock.calls[1][1];
+    expect(todayData.fastCompleted).toBe(true);
+    expect(todayData.fastProtocol).toBe('16:8');
+    expect(todayData.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('does not update today aggregate when cancelled', async () => {
+  it('does not write today aggregate when cancelled', async () => {
     await saveFastSession('uid-1', mockActiveFast, false);
 
     expect(mockBatchSet).toHaveBeenCalledTimes(1);
@@ -108,20 +108,21 @@ describe('persistFastCompletion', () => {
   const result: FastCompletionResult = {
     xpEarned: 80,
     bonusXp: 10,
+    streakMultiplier: 1,
     newStreak: 3,
     longestStreak: 5,
   };
 
-  it('calls updateDoc on the streak aggregate ref', async () => {
+  it('calls setDoc on the streak aggregate ref', async () => {
     await persistFastCompletion('uid-1', result, 200);
-    expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
-    const ref = mockUpdateDoc.mock.calls[0][0];
+    expect(mockSetDoc).toHaveBeenCalledTimes(1);
+    const ref = mockSetDoc.mock.calls[0][0];
     expect(ref).toContain('streak');
   });
 
   it('writes correct streak fields', async () => {
     await persistFastCompletion('uid-1', result, 200);
-    const payload = mockUpdateDoc.mock.calls[0][1];
+    const payload = mockSetDoc.mock.calls[0][1];
     expect(payload.currentStreakDays).toBe(3);
     expect(payload.longestStreakDays).toBe(5);
     expect(payload.lastStreakDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -129,13 +130,13 @@ describe('persistFastCompletion', () => {
 
   it('increments xpTotal by xpEarned + bonusXp', async () => {
     await persistFastCompletion('uid-1', result, 200);
-    const payload = mockUpdateDoc.mock.calls[0][1];
+    const payload = mockSetDoc.mock.calls[0][1];
     expect(payload.xpTotal).toEqual({ __increment: 90 });
   });
 
   it('calculates level from new total XP', async () => {
     await persistFastCompletion('uid-1', result, 200);
-    const payload = mockUpdateDoc.mock.calls[0][1];
+    const payload = mockSetDoc.mock.calls[0][1];
     expect(typeof payload.level).toBe('number');
     expect(payload.level).toBeGreaterThanOrEqual(1);
   });
@@ -143,7 +144,7 @@ describe('persistFastCompletion', () => {
   it('handles zero bonusXp', async () => {
     const noBonus: FastCompletionResult = { ...result, bonusXp: 0 };
     await persistFastCompletion('uid-1', noBonus, 0);
-    const payload = mockUpdateDoc.mock.calls[0][1];
+    const payload = mockSetDoc.mock.calls[0][1];
     expect(payload.xpTotal).toEqual({ __increment: 80 });
   });
 });

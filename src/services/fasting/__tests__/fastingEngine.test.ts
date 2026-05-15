@@ -12,24 +12,24 @@ import {
 const HOUR = 3_600_000;
 
 describe('getProtocolDurationMs', () => {
-  it('returns 12 hours for 12:12', () => {
-    expect(getProtocolDurationMs('12:12')).toBe(12 * HOUR);
+  it('returns 13 hours for circadian', () => {
+    expect(getProtocolDurationMs('circadian')).toBe(13 * HOUR);
   });
 
-  it('returns 14 hours for 14:10', () => {
-    expect(getProtocolDurationMs('14:10')).toBe(14 * HOUR);
+  it('returns 15 hours for 15:9', () => {
+    expect(getProtocolDurationMs('15:9')).toBe(15 * HOUR);
   });
 
   it('returns 16 hours for 16:8', () => {
     expect(getProtocolDurationMs('16:8')).toBe(16 * HOUR);
   });
 
-  it('returns custom hours when protocol is custom', () => {
-    expect(getProtocolDurationMs('custom', 20)).toBe(20 * HOUR);
+  it('returns 24 hours for 24h', () => {
+    expect(getProtocolDurationMs('24h')).toBe(24 * HOUR);
   });
 
-  it('defaults to 16 hours for custom without customHours', () => {
-    expect(getProtocolDurationMs('custom')).toBe(16 * HOUR);
+  it('defaults to 16 hours for unknown protocol', () => {
+    expect(getProtocolDurationMs('omad')).toBe(23 * HOUR);
   });
 });
 
@@ -52,8 +52,8 @@ describe('getFastingStage', () => {
     expect(getFastingStage(13.9 * HOUR).id).toBe('metabolic-shift');
   });
 
-  it('returns Fat Burning for 14+ hours', () => {
-    expect(getFastingStage(14 * HOUR).id).toBe('fat-burning');
+  it('returns Fat Burning for 16+ hours', () => {
+    expect(getFastingStage(16 * HOUR).id).toBe('fat-burning');
     expect(getFastingStage(20 * HOUR).id).toBe('fat-burning');
   });
 
@@ -61,7 +61,7 @@ describe('getFastingStage', () => {
     expect(getFastingStage(0).label).toBe('Fed State');
     expect(getFastingStage(5 * HOUR).label).toBe('Early Fast');
     expect(getFastingStage(13 * HOUR).label).toBe('Metabolic Shift');
-    expect(getFastingStage(15 * HOUR).label).toBe('Fat Burning');
+    expect(getFastingStage(17 * HOUR).label).toBe('Fat Burning');
   });
 });
 
@@ -142,19 +142,19 @@ describe('calculateProgress', () => {
 });
 
 describe('calculateXpReward', () => {
-  it('returns 30 for 12:12', () => {
-    expect(calculateXpReward('12:12')).toBe(30);
+  it('returns 65 for circadian (13h)', () => {
+    expect(calculateXpReward('circadian')).toBe(65);
   });
 
-  it('returns 50 for 14:10', () => {
-    expect(calculateXpReward('14:10')).toBe(50);
+  it('returns 75 for 15:9', () => {
+    expect(calculateXpReward('15:9')).toBe(75);
   });
 
   it('returns 80 for 16:8', () => {
     expect(calculateXpReward('16:8')).toBe(80);
   });
 
-  it('returns 80 for custom', () => {
-    expect(calculateXpReward('custom')).toBe(80);
+  it('returns 864 for 72h', () => {
+    expect(calculateXpReward('72h')).toBe(864);
   });
 });

@@ -75,7 +75,7 @@ describe('step-2-body store integration', () => {
   describe('step-2 data survives back navigation', () => {
     it('retains body stats after setting other onboarding fields', () => {
       useOnboardingStore.getState().setBodyStats(65, 'moderate');
-      useOnboardingStore.getState().setProtocol('14:10');
+      useOnboardingStore.getState().setProtocol('15:9');
 
       const s = useOnboardingStore.getState();
       expect(s.weightKg).toBe(65);

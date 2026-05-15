@@ -42,17 +42,17 @@ beforeEach(() => {
 });
 
 describe('saveWaterEvent', () => {
-  it('batch writes a waterEvent and updates aggregates/today', async () => {
+  it('batch writes a waterEvent and sets today aggregate with merge', async () => {
     await saveWaterEvent('user-1', 250, 2000, 750, false);
 
-    expect(mockSet).toHaveBeenCalledTimes(1);
+    // batch.set called twice: waterEvent + today aggregate (set+merge)
+    expect(mockSet).toHaveBeenCalledTimes(2);
     const eventData = mockSet.mock.calls[0][1];
     expect(eventData.userId).toBe('user-1');
     expect(eventData.ml).toBe(250);
     expect(eventData.date).toBe(getUTCDayKey(Date.now()));
 
-    expect(mockUpdate).toHaveBeenCalledTimes(1);
-    const todayData = mockUpdate.mock.calls[0][1];
+    const todayData = mockSet.mock.calls[1][1];
     expect(todayData.waterMl).toBe(750);
     expect(todayData.waterGoalMl).toBe(2000);
     expect(todayData.waterGoalMet).toBe(false);
@@ -63,13 +63,13 @@ describe('saveWaterEvent', () => {
   it('sets waterGoalMet true when goal is met', async () => {
     await saveWaterEvent('user-1', 500, 2000, 2100, true);
 
-    const todayData = mockUpdate.mock.calls[0][1];
+    const todayData = mockSet.mock.calls[1][1];
     expect(todayData.waterGoalMet).toBe(true);
   });
 });
 
 describe('awardHydrationXp', () => {
-  it('adds HYDRATION_GOAL_XP to existing xpTotal and updates level', async () => {
+  it('adds HYDRATION_GOAL_XP to existing xpTotal and updates level via batch.set', async () => {
     mockGetDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({ xpTotal: 480, level: 1, badgeIds: [] }),
@@ -77,11 +77,11 @@ describe('awardHydrationXp', () => {
 
     await awardHydrationXp('user-1');
 
-    // 480 + 20 = 500 → level 2
-    expect(mockUpdate).toHaveBeenCalledTimes(1);
-    const updateData = mockUpdate.mock.calls[0][1];
-    expect(updateData.xpTotal).toBe(500);
-    expect(updateData.level).toBe(2);
+    // 480 + 20 = 500 → level 2; now uses batch.set with merge
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    const setData = mockSet.mock.calls[0][1];
+    expect(setData.xpTotal).toBe(500);
+    expect(setData.level).toBe(2);
   });
 
   it('does nothing when streak doc does not exist', async () => {
@@ -89,7 +89,7 @@ describe('awardHydrationXp', () => {
 
     await awardHydrationXp('user-1');
 
-    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockSet).not.toHaveBeenCalled();
     expect(mockCommit).not.toHaveBeenCalled();
   });
 });

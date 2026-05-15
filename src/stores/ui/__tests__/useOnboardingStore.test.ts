@@ -47,8 +47,8 @@ describe('useOnboardingStore', () => {
     });
 
     it('setProtocol updates default protocol', () => {
-      useOnboardingStore.getState().setProtocol('12:12');
-      expect(useOnboardingStore.getState().defaultProtocol).toBe('12:12');
+      useOnboardingStore.getState().setProtocol('circadian');
+      expect(useOnboardingStore.getState().defaultProtocol).toBe('circadian');
     });
 
     it('setCycleAndNotifications updates both fields', () => {
@@ -64,7 +64,7 @@ describe('useOnboardingStore', () => {
       s.setDisplayName('Jane');
       s.setGender('female');
       s.setBodyStats(65, 'moderate');
-      s.setProtocol('14:10');
+      s.setProtocol('15:9');
       s.setCycleAndNotifications('2026-04-10', true);
 
       const data = useOnboardingStore.getState().toOnboardingData();
@@ -72,7 +72,7 @@ describe('useOnboardingStore', () => {
       expect(data.gender).toBe('female');
       expect(data.weightKg).toBe(65);
       expect(data.activityLevel).toBe('moderate');
-      expect(data.defaultProtocol).toBe('14:10');
+      expect(data.defaultProtocol).toBe('15:9');
       expect(data.lastPeriodStart).toBe('2026-04-10');
       expect(data.notificationsEnabled).toBe(true);
     });
@@ -141,7 +141,7 @@ describe('useOnboardingStore', () => {
       s.setDisplayName('Jane');
       s.setGender('male');
       s.setBodyStats(75, 'high');
-      s.setProtocol('12:12');
+      s.setProtocol('circadian');
       s.setCycleAndNotifications('2026-04-10', true);
 
       useOnboardingStore.getState().reset();

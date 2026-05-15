@@ -26,24 +26,16 @@ interface SubscriptionStore {
   clearSubscription: () => void;
 }
 
-const DEFAULT: Pick<SubscriptionStore, 'tier' | 'status' | 'expiresAt' | 'rcCustomerId' | 'isPremium'> = {
-  tier: 'free',
-  status: 'unknown',
-  expiresAt: null,
-  rcCustomerId: null,
-  isPremium: false,
-};
-
 export const useSubscriptionStore = create<SubscriptionStore>()(
   persist(
     (set, get) => ({
-      ...DEFAULT,
+      tier: 'pro' as SubscriptionTier,
+      status: 'active' as SubscriptionState['status'],
+      expiresAt: null,
+      rcCustomerId: null,
+      isPremium: true,
 
-      canAccess: (feature: PremiumFeature) => {
-        if (get().isPremium) return true;
-        // Free tier has no access to any premium feature
-        return !PRO_FEATURES.includes(feature);
-      },
+      canAccess: (_feature: PremiumFeature) => true,
 
       setSubscriptionState: (state: SubscriptionState) =>
         set({
@@ -51,10 +43,18 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           status: state.status,
           expiresAt: state.expiresAt,
           rcCustomerId: state.rcCustomerId,
-          isPremium: state.tier === 'pro' && state.status === 'active',
+          // Always keep isPremium true regardless of subscription state
+          isPremium: true,
         }),
 
-      clearSubscription: () => set({ ...DEFAULT }),
+      clearSubscription: () =>
+        set({
+          tier: 'pro',
+          status: 'active',
+          expiresAt: null,
+          rcCustomerId: null,
+          isPremium: true,
+        }),
     }),
     {
       name: 'subscription-store',

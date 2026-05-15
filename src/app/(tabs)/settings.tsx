@@ -1,21 +1,17 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { StyleSheet, ScrollView, View, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, ScrollView, View, Alert } from 'react-native';
 import { Text, TextInput, Button, Switch, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AppColors, AppSpacing, AppFontSize, AppRadius } from '@/constants/theme';
 import { useUserStore } from '@/stores/user/useUserStore';
 import { useFastingStore } from '@/stores/fasting/useFastingStore';
 import { useWaterStore } from '@/stores/water/useWaterStore';
-import { useSubscriptionStore } from '@/stores/subscription/useSubscriptionStore';
 import { signOutUser } from '@/services/auth/authService';
 import { loadUserSettings, updateUserSettings, updateUserProfile } from '@/services/auth/profileService';
 import { calculateWaterGoal } from '@/services/water/hydrationGoal';
-import { PROTOCOL_OPTIONS } from '@/constants/protocols';
+import { ALL_PROTOCOLS } from '@/constants/protocols';
 import { DeleteAccountDialog } from '@/components/DeleteAccountDialog';
-import { PremiumBadge } from '@/components/subscription/PremiumBadge';
-import { PaywallSheet } from '@/components/subscription/PaywallSheet';
 import type { UserSettings } from '@/types/auth';
 import type { FastingProtocol } from '@/types/fasting';
 
@@ -25,6 +21,9 @@ const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
   moderate: 'Moderate',
   high: 'High',
 };
+
+// Show only the core daily-trf protocols in settings for brevity
+const SETTINGS_PROTOCOL_OPTIONS = ALL_PROTOCOLS.filter(p => p.category === 'daily-trf');
 
 function SectionHeader({ title }: { title: string }) {
   return <Text style={styles.sectionHeader}>{title}</Text>;
@@ -50,11 +49,6 @@ export default function SettingsScreen() {
   const profile = useUserStore(s => s.profile);
   const clearAuth = useUserStore(s => s.clearAuth);
 
-  const isPremium = useSubscriptionStore(s => s.isPremium);
-  const tier      = useSubscriptionStore(s => s.tier);
-  const expiresAt = useSubscriptionStore(s => s.expiresAt);
-
-  const [paywallOpen, setPaywallOpen] = useState(false);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
@@ -78,7 +72,7 @@ export default function SettingsScreen() {
           setSettings(data);
           setWeightKg(String(data.weightKg));
           setActivityLevel(data.activityLevel);
-          setDefaultProtocol(data.defaultProtocol === 'custom' ? '16:8' : data.defaultProtocol);
+          setDefaultProtocol(data.defaultProtocol);
           setFastingReminders(data.notifications.fastingReminders);
           setHydrationReminders(data.notifications.hydrationReminders);
         }
@@ -215,15 +209,15 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <Text style={styles.settingLabel}>Default Protocol</Text>
           <View style={styles.protocolRow}>
-            {PROTOCOL_OPTIONS.map((opt) => (
+            {SETTINGS_PROTOCOL_OPTIONS.map((opt) => (
               <Button
-                key={opt.value}
-                mode={defaultProtocol === opt.value ? 'contained' : 'outlined'}
-                buttonColor={defaultProtocol === opt.value ? AppColors.primary : undefined}
-                textColor={defaultProtocol === opt.value ? AppColors.surface : AppColors.primary}
+                key={opt.id}
+                mode={defaultProtocol === opt.id ? 'contained' : 'outlined'}
+                buttonColor={defaultProtocol === opt.id ? AppColors.primary : undefined}
+                textColor={defaultProtocol === opt.id ? AppColors.surface : AppColors.primary}
                 compact
                 style={styles.protocolButton}
-                onPress={() => setDefaultProtocol(opt.value)}
+                onPress={() => setDefaultProtocol(opt.id)}
               >
                 {opt.label}
               </Button>
@@ -265,43 +259,6 @@ export default function SettingsScreen() {
           Save Changes
         </Button>
 
-        {/* Subscription Section */}
-        <SectionHeader title="Subscription" />
-        <View style={styles.card}>
-          <View style={styles.subRow}>
-            <View style={styles.subInfo}>
-              <PremiumBadge size={isPremium ? 'md' : 'sm'} />
-              <Text style={styles.subTier}>
-                {isPremium ? 'HabitLoop Pro' : 'Free Plan'}
-              </Text>
-              {isPremium && expiresAt && (
-                <Text style={styles.subExpiry}>
-                  Renews {new Date(expiresAt).toLocaleDateString()}
-                </Text>
-              )}
-            </View>
-            {!isPremium && (
-              <TouchableOpacity
-                style={styles.upgradeBtn}
-                onPress={() => setPaywallOpen(true)}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons name="crown" size={14} color={AppColors.surface} />
-                <Text style={styles.upgradeLabel}>Upgrade</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {!isPremium && (
-            <>
-              <Divider style={styles.divider} />
-              <Text style={styles.subFeatureHint}>
-                Unlock AI meals, hormone coaching, unlimited groups and more.
-              </Text>
-            </>
-          )}
-        </View>
-
         {/* Account Section */}
         <SectionHeader title="Account" />
         <View style={styles.card}>
@@ -330,13 +287,6 @@ export default function SettingsScreen() {
       <DeleteAccountDialog
         visible={deleteDialogVisible}
         onDismiss={() => setDeleteDialogVisible(false)}
-      />
-
-      <PaywallSheet
-        visible={paywallOpen}
-        feature="ai-meals"
-        onClose={() => setPaywallOpen(false)}
-        onUpgraded={() => setPaywallOpen(false)}
       />
     </SafeAreaView>
   );
@@ -403,11 +353,11 @@ const styles = StyleSheet.create({
   },
   protocolRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: AppSpacing.sm,
     marginTop: AppSpacing.xs,
   },
   protocolButton: {
-    flex: 1,
     borderColor: AppColors.primaryMid,
     borderRadius: AppRadius.sm,
   },
@@ -431,43 +381,5 @@ const styles = StyleSheet.create({
     color: AppColors.gray,
     textAlign: 'center',
     marginTop: AppSpacing.md,
-  },
-  subRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: AppSpacing.md,
-  },
-  subInfo: {
-    flex: 1,
-    gap: AppSpacing.xs,
-  },
-  subTier: {
-    fontSize: AppFontSize.md,
-    fontWeight: '600',
-    color: AppColors.dark,
-  },
-  subExpiry: {
-    fontSize: AppFontSize.sm,
-    color: AppColors.textMuted,
-  },
-  upgradeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: AppSpacing.xs,
-    backgroundColor: AppColors.primary,
-    borderRadius: AppRadius.full,
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm,
-  },
-  upgradeLabel: {
-    fontSize: AppFontSize.sm,
-    fontWeight: '700',
-    color: AppColors.surface,
-  },
-  subFeatureHint: {
-    fontSize: AppFontSize.sm,
-    color: AppColors.textMuted,
-    lineHeight: 20,
   },
 });

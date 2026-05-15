@@ -1,15 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { AppColors, AppSpacing, AppFontSize, AppRadius } from '@/constants/theme';
 import { useUserStore } from '@/stores/user/useUserStore';
 import { useFastingStore } from '@/stores/fasting/useFastingStore';
 import { useCycleStore } from '@/stores/cycle/useCycleStore';
-import { useSubscriptionStore } from '@/stores/subscription/useSubscriptionStore';
 import { useCyclePhase } from '@/hooks/useCyclePhase';
 import { getUTCDayKey } from '@/utils/dateUtils';
 import {
@@ -26,14 +24,12 @@ import { SymptomLogger } from '@/components/cycle/SymptomLogger';
 import { CycleCalendar } from '@/components/cycle/CycleCalendar';
 import { HormoneCoachingCard } from '@/components/subscription/HormoneCoachingCard';
 import { MealSuggestionCard } from '@/components/subscription/MealSuggestionCard';
-import { PaywallSheet } from '@/components/subscription/PaywallSheet';
 import type { SymptomEntry, CyclePhaseType } from '@/types/cycle';
-import type { MealSuggestionSet, CoachingTip, PremiumFeature } from '@/types/subscription';
+import type { MealSuggestionSet, CoachingTip } from '@/types/subscription';
 
 export default function CycleScreen() {
   const userId            = useUserStore(s => s.user?.uid);
   const selectedProtocol  = useFastingStore(s => s.selectedProtocol);
-  const isPremium         = useSubscriptionStore(s => s.isPremium);
 
   const lastPeriodStart    = useCycleStore(s => s.lastPeriodStart);
   const avgCycleLength     = useCycleStore(s => s.avgCycleLength);
@@ -45,11 +41,10 @@ export default function CycleScreen() {
 
   const { phase, dayOfCycle, recommendation, isTracking, warnForProtocol } = useCyclePhase();
 
-  const [syncing, setSyncing]         = useState(false);
-  const [meals, setMeals]             = useState<MealSuggestionSet | null>(null);
-  const [mealsLoading, setMealsLoading] = useState(false);
-  const [coachingTip, setCoachingTip] = useState<CoachingTip | null>(null);
-  const [paywallFeature, setPaywallFeature] = useState<PremiumFeature | null>(null);
+  const [syncing, setSyncing]             = useState(false);
+  const [meals, setMeals]                 = useState<MealSuggestionSet | null>(null);
+  const [mealsLoading, setMealsLoading]   = useState(false);
+  const [coachingTip, setCoachingTip]     = useState<CoachingTip | null>(null);
 
   const today = getUTCDayKey(Date.now());
 
@@ -89,14 +84,12 @@ export default function CycleScreen() {
     }
   }, [today, symptomDate]);
 
-  // Load premium content when phase is known and user is premium
+  // Load coaching and meal suggestions when phase is known
   useEffect(() => {
     if (!isTracking || !phase) return;
 
     const tip = getDailyCoachingTip(phase as CyclePhaseType, today);
     setCoachingTip(tip);
-
-    if (!isPremium) return;
 
     let cancelled = false;
     setMealsLoading(true);
@@ -109,7 +102,7 @@ export default function CycleScreen() {
       .finally(() => { if (!cancelled) setMealsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [isTracking, phase, today, isPremium, selectedProtocol]);
+  }, [isTracking, phase, today, selectedProtocol]);
 
   const handleSelectDate = useCallback(async (isoDate: string) => {
     if (!userId) return;
@@ -181,61 +174,27 @@ export default function CycleScreen() {
 
         {/* Hormone coaching tip — shown to all users when tracking */}
         {isTracking && phase && coachingTip && (
-          isPremium ? (
-            <HormoneCoachingCard
-              tip={coachingTip}
-              phase={phase as CyclePhaseType}
-              onAction={() => {}}
-            />
-          ) : (
-            <TouchableOpacity
-              style={styles.lockedCard}
-              onPress={() => setPaywallFeature('hormone-coaching')}
-              activeOpacity={0.75}
-            >
-              <View style={styles.lockedRow}>
-                <MaterialCommunityIcons name="head-heart-outline" size={22} color={AppColors.primary} />
-                <View style={styles.lockedText}>
-                  <Text style={styles.lockedTitle}>{coachingTip.headline}</Text>
-                  <Text style={styles.lockedSub}>Hormone coaching · Pro feature</Text>
-                </View>
-                <MaterialCommunityIcons name="lock-outline" size={20} color={AppColors.gray} />
-              </View>
-            </TouchableOpacity>
-          )
+          <HormoneCoachingCard
+            tip={coachingTip}
+            phase={phase as CyclePhaseType}
+            onAction={() => {}}
+          />
         )}
 
-        {/* AI meal suggestions — premium only */}
+        {/* AI meal suggestions — shown to all users */}
         {isTracking && phase && (
-          isPremium ? (
-            <MealSuggestionCard
-              meals={meals}
-              loading={mealsLoading}
-              onRetry={() => {
-                if (!phase) return;
-                setMealsLoading(true);
-                getMealSuggestions(selectedProtocol, phase as CyclePhaseType, today)
-                  .then(setMeals)
-                  .catch(() => setMeals(null))
-                  .finally(() => setMealsLoading(false));
-              }}
-            />
-          ) : (
-            <TouchableOpacity
-              style={styles.lockedCard}
-              onPress={() => setPaywallFeature('ai-meals')}
-              activeOpacity={0.75}
-            >
-              <View style={styles.lockedRow}>
-                <MaterialCommunityIcons name="food-variant" size={22} color={AppColors.accent} />
-                <View style={styles.lockedText}>
-                  <Text style={styles.lockedTitle}>AI Meal Suggestions</Text>
-                  <Text style={styles.lockedSub}>Tailored to your phase & protocol · Pro feature</Text>
-                </View>
-                <MaterialCommunityIcons name="lock-outline" size={20} color={AppColors.gray} />
-              </View>
-            </TouchableOpacity>
-          )
+          <MealSuggestionCard
+            meals={meals}
+            loading={mealsLoading}
+            onRetry={() => {
+              if (!phase) return;
+              setMealsLoading(true);
+              getMealSuggestions(selectedProtocol, phase as CyclePhaseType, today)
+                .then(setMeals)
+                .catch(() => setMeals(null))
+                .finally(() => setMealsLoading(false));
+            }}
+          />
         )}
 
         <CycleCalendar
@@ -253,15 +212,6 @@ export default function CycleScreen() {
           />
         )}
       </ScrollView>
-
-      {paywallFeature && (
-        <PaywallSheet
-          visible={paywallFeature !== null}
-          feature={paywallFeature}
-          onClose={() => setPaywallFeature(null)}
-          onUpgraded={() => setPaywallFeature(null)}
-        />
-      )}
     </SafeAreaView>
   );
 }
@@ -306,31 +256,5 @@ const styles = StyleSheet.create({
     color: AppColors.textMuted,
     textAlign: 'center',
     lineHeight: 22,
-  },
-  lockedCard: {
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadius.lg,
-    padding: AppSpacing.lg,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    borderStyle: 'dashed',
-  },
-  lockedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: AppSpacing.md,
-  },
-  lockedText: {
-    flex: 1,
-    gap: 2,
-  },
-  lockedTitle: {
-    fontSize: AppFontSize.md,
-    fontWeight: '600',
-    color: AppColors.dark,
-  },
-  lockedSub: {
-    fontSize: AppFontSize.sm,
-    color: AppColors.textMuted,
   },
 });

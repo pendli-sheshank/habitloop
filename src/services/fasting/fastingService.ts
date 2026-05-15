@@ -21,6 +21,7 @@ export function buildFastSession(
   userId: string,
   activeFast: ActiveFastState,
   completed: boolean,
+  streakMultiplier = 1,
 ): Omit<FastSession, 'id'> {
   const now = Date.now();
   return {
@@ -31,6 +32,7 @@ export function buildFastSession(
     protocol: activeFast.protocol,
     completed,
     xpEarned: completed ? calculateXpReward(activeFast.protocol) : 0,
+    streakMultiplier,
     cyclePhaseAtStart: null,
     createdAt: now,
   };
@@ -40,8 +42,9 @@ export async function saveFastSession(
   userId: string,
   activeFast: ActiveFastState,
   completed: boolean,
+  streakMultiplier = 1,
 ): Promise<void> {
-  const session = buildFastSession(userId, activeFast, completed);
+  const session = buildFastSession(userId, activeFast, completed, streakMultiplier);
   const today = getUTCDayKey(Date.now());
 
   const batch = writeBatch(db);

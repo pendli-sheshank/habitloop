@@ -91,6 +91,7 @@ export async function recordFastCompletion(
   return {
     xpEarned: fastXp,
     bonusXp,
+    streakMultiplier: 1,
     newStreak,
     longestStreak: newLongest,
   };
