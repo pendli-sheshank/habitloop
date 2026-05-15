@@ -26,8 +26,10 @@ export interface UserProfile {
   expoPushToken: string | null;
 }
 
+import type { FastingProtocol } from './fasting';
+
 export interface UserSettings {
-  defaultProtocol: '12:12' | '14:10' | '16:8' | 'custom';
+  defaultProtocol: FastingProtocol;
   gender: Gender;
   weightKg: number;
   activityLevel: 'low' | 'moderate' | 'high';
@@ -53,7 +55,7 @@ export interface OnboardingData {
   gender: Gender;
   weightKg: number;
   activityLevel: 'low' | 'moderate' | 'high';
-  defaultProtocol: '12:12' | '14:10' | '16:8';
+  defaultProtocol: FastingProtocol;
   calculatedWaterGoalMl: number;
   lastPeriodStart: string | null; // ISO date, null if skipped
   notificationsEnabled: boolean;

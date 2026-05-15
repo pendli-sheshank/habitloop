@@ -20,7 +20,7 @@ interface FastingTimerState {
   isComplete: boolean;
 }
 
-const IDLE_STAGE: FastingStage = { id: 'fed', label: 'Not Fasting', color: '#6B7280' };
+const IDLE_STAGE: FastingStage = { id: 'fed', label: 'Not Fasting', description: 'No active fast', color: '#6B7280' };
 
 export function useFastingTimer(): FastingTimerState {
   const activeFast = useFastingStore(s => s.activeFast);

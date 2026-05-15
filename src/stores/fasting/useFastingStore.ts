@@ -9,6 +9,7 @@ interface FastingState {
   selectedProtocol: FastingProtocol;
   completedToday: boolean;
   lastCompletionResult: FastCompletionResult | null;
+  totalCompletedFasts: number;
 
   setSelectedProtocol: (protocol: FastingProtocol) => void;
   startFast: (protocol: FastingProtocol, targetDurationMs: number) => void;
@@ -17,6 +18,7 @@ interface FastingState {
   resetDaily: () => void;
   clearFasting: () => void;
   clearCompletionResult: () => void;
+  incrementCompletedFasts: () => void;
 }
 
 export const useFastingStore = create<FastingState>()(
@@ -27,6 +29,7 @@ export const useFastingStore = create<FastingState>()(
       selectedProtocol: '16:8',
       completedToday: false,
       lastCompletionResult: null,
+      totalCompletedFasts: 0,
 
       setSelectedProtocol: (selectedProtocol) => set({ selectedProtocol }),
 
@@ -61,10 +64,14 @@ export const useFastingStore = create<FastingState>()(
           selectedProtocol: '16:8',
           completedToday: false,
           lastCompletionResult: null,
+          totalCompletedFasts: 0,
         }),
 
       clearCompletionResult: () =>
         set({ lastCompletionResult: null }),
+
+      incrementCompletedFasts: () =>
+        set((state) => ({ totalCompletedFasts: state.totalCompletedFasts + 1 })),
     }),
     {
       name: 'fasting-store',

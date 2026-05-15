@@ -23,26 +23,22 @@ describe('XP constants', () => {
 });
 
 describe('calcFastXp', () => {
-  it('returns 30 for completed 12:12', () => {
-    expect(calcFastXp('12:12', true)).toBe(30);
-  });
-
-  it('returns 50 for completed 14:10', () => {
-    expect(calcFastXp('14:10', true)).toBe(50);
+  it('returns 65 for completed circadian (13h)', () => {
+    expect(calcFastXp('circadian', true)).toBe(65);
   });
 
   it('returns 80 for completed 16:8', () => {
     expect(calcFastXp('16:8', true)).toBe(80);
   });
 
-  it('returns 60 for completed custom', () => {
-    expect(calcFastXp('custom', true)).toBe(60);
+  it('applies streak multiplier', () => {
+    // 16:8 base = 80, streak 7 days => 1.5x => 120
+    expect(calcFastXp('16:8', true, 7)).toBe(120);
   });
 
   it('returns 0 when not completed', () => {
     expect(calcFastXp('16:8', false)).toBe(0);
-    expect(calcFastXp('12:12', false)).toBe(0);
-    expect(calcFastXp('custom', false)).toBe(0);
+    expect(calcFastXp('circadian', false)).toBe(0);
   });
 });
 
@@ -81,34 +77,34 @@ describe('calcLevelFromXp', () => {
     expect(calcLevelFromXp(1500)).toBe(3);
   });
 
-  it('returns level 4 at exactly 5000 XP', () => {
-    expect(calcLevelFromXp(5000)).toBe(4);
+  it('returns level 4 at exactly 3000 XP', () => {
+    expect(calcLevelFromXp(3000)).toBe(4);
   });
 
-  it('returns level 4 for very high XP', () => {
-    expect(calcLevelFromXp(99999)).toBe(4);
+  it('returns level 8 for very high XP', () => {
+    expect(calcLevelFromXp(99999)).toBe(8);
   });
 });
 
 describe('getLevelTitle', () => {
-  it('returns Beginner for level 1', () => {
-    expect(getLevelTitle(1)).toBe('Beginner');
+  it('returns Novice for level 1', () => {
+    expect(getLevelTitle(1)).toBe('Novice');
   });
 
-  it('returns Consistent for level 2', () => {
-    expect(getLevelTitle(2)).toBe('Consistent');
+  it('returns Beginner for level 2', () => {
+    expect(getLevelTitle(2)).toBe('Beginner');
   });
 
-  it('returns Committed for level 3', () => {
-    expect(getLevelTitle(3)).toBe('Committed');
+  it('returns Consistent for level 3', () => {
+    expect(getLevelTitle(3)).toBe('Consistent');
   });
 
-  it('returns HabitLoop Pro for level 4', () => {
-    expect(getLevelTitle(4)).toBe('HabitLoop Pro');
+  it('returns Dedicated for level 4', () => {
+    expect(getLevelTitle(4)).toBe('Dedicated');
   });
 
-  it('falls back to Beginner for unknown level', () => {
-    expect(getLevelTitle(99)).toBe('Beginner');
+  it('falls back to Novice for unknown level', () => {
+    expect(getLevelTitle(99)).toBe('Novice');
   });
 });
 
@@ -121,12 +117,12 @@ describe('getXpForNextLevel', () => {
     expect(getXpForNextLevel(2)).toBe(1500);
   });
 
-  it('returns 5000 for level 3', () => {
-    expect(getXpForNextLevel(3)).toBe(5000);
+  it('returns 3000 for level 3', () => {
+    expect(getXpForNextLevel(3)).toBe(3000);
   });
 
   it('returns null for max level', () => {
-    expect(getXpForNextLevel(4)).toBeNull();
+    expect(getXpForNextLevel(8)).toBeNull();
   });
 });
 
@@ -134,7 +130,7 @@ describe('calcXpProgress', () => {
   it('returns level 1 progress for 0 XP', () => {
     const info = calcXpProgress(0);
     expect(info.level).toBe(1);
-    expect(info.title).toBe('Beginner');
+    expect(info.title).toBe('Novice');
     expect(info.currentLevelXp).toBe(0);
     expect(info.nextLevelXp).toBe(500);
     expect(info.progress).toBe(0);
@@ -149,7 +145,7 @@ describe('calcXpProgress', () => {
   it('returns level 2 at exactly 500 XP', () => {
     const info = calcXpProgress(500);
     expect(info.level).toBe(2);
-    expect(info.title).toBe('Consistent');
+    expect(info.title).toBe('Beginner');
     expect(info.currentLevelXp).toBe(500);
     expect(info.nextLevelXp).toBe(1500);
     expect(info.progress).toBe(0);
@@ -162,15 +158,15 @@ describe('calcXpProgress', () => {
   });
 
   it('returns max level with progress 1 at cap', () => {
-    const info = calcXpProgress(5000);
-    expect(info.level).toBe(4);
-    expect(info.title).toBe('HabitLoop Pro');
+    const info = calcXpProgress(50000);
+    expect(info.level).toBe(8);
+    expect(info.title).toBe('Master');
     expect(info.progress).toBe(1);
   });
 
   it('returns max level with progress 1 beyond cap', () => {
     const info = calcXpProgress(99999);
-    expect(info.level).toBe(4);
+    expect(info.level).toBe(8);
     expect(info.progress).toBe(1);
   });
 });

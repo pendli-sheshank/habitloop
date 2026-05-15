@@ -53,7 +53,7 @@ describe('step-4-cycle store integration', () => {
   describe('cycle data survives other field changes', () => {
     it('retains cycle data after changing protocol', () => {
       useOnboardingStore.getState().setCycleAndNotifications('2026-04-15', true);
-      useOnboardingStore.getState().setProtocol('12:12');
+      useOnboardingStore.getState().setProtocol('circadian');
 
       const s = useOnboardingStore.getState();
       expect(s.lastPeriodStart).toBe('2026-04-15');
@@ -87,7 +87,7 @@ describe('step-4-cycle store integration', () => {
       s.setDisplayName('Jane');
       s.setGender('female');
       s.setBodyStats(65, 'moderate');
-      s.setProtocol('14:10');
+      s.setProtocol('15:9');
       s.setCycleAndNotifications('2026-04-10', true);
 
       const data = useOnboardingStore.getState().toOnboardingData();
@@ -95,7 +95,7 @@ describe('step-4-cycle store integration', () => {
       expect(data.gender).toBe('female');
       expect(data.weightKg).toBe(65);
       expect(data.activityLevel).toBe('moderate');
-      expect(data.defaultProtocol).toBe('14:10');
+      expect(data.defaultProtocol).toBe('15:9');
       expect(data.lastPeriodStart).toBe('2026-04-10');
       expect(data.notificationsEnabled).toBe(true);
       expect(data.calculatedWaterGoalMl).toBeGreaterThan(0);

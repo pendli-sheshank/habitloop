@@ -110,10 +110,10 @@ describe('getMealSuggestions — API call', () => {
       content: [{ type: 'text', text: JSON.stringify(VALID_MEAL_SET) }],
     }));
 
-    const result = await getMealSuggestions('14:10', 'luteal', '2026-05-13');
+    const result = await getMealSuggestions('15:9', 'luteal', '2026-05-13');
     expect(result).not.toBeNull();
     expect(result!.breakingFastMeal.title).toBe('Eggs & Avocado');
-    expect(result!.protocol).toBe('14:10');
+    expect(result!.protocol).toBe('15:9');
     expect(result!.cyclePhase).toBe('luteal');
   });
 
@@ -131,7 +131,7 @@ describe('getMealSuggestions — API call', () => {
       content: [{ type: 'text', text: JSON.stringify(VALID_MEAL_SET) }],
     }));
 
-    await getMealSuggestions('12:12', 'menstruation', '2026-05-13');
+    await getMealSuggestions('circadian', 'menstruation', '2026-05-13');
     const url = (fetch as jest.Mock).mock.calls[0][0] as string;
     expect(url).toBe('https://api.anthropic.com/v1/messages');
   });
@@ -141,7 +141,7 @@ describe('getMealSuggestions — API call', () => {
       content: [{ type: 'text', text: JSON.stringify(VALID_MEAL_SET) }],
     }));
 
-    await getMealSuggestions('12:12', 'menstruation', '2026-05-13');
+    await getMealSuggestions('circadian', 'menstruation', '2026-05-13');
     const init = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
     const body = JSON.parse(init.body as string);
     expect(body.system[0].cache_control).toEqual({ type: 'ephemeral' });

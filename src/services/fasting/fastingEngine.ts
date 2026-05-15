@@ -1,42 +1,54 @@
-import type { FastingProtocol, FastingStage, FastingStageId } from '@/types/fasting';
+import type { FastingProtocol, FastingStage, BodyStateId } from '@/types/fasting';
 import { AppColors } from '@/constants/theme';
 
 const HOUR_MS = 3_600_000;
 
-const STAGE_THRESHOLDS: { maxHours: number; id: FastingStageId; label: string; color: string }[] = [
-  { maxHours: 4,  id: 'fed',              label: 'Fed State',       color: AppColors.gray },
-  { maxHours: 12, id: 'early-fast',       label: 'Early Fast',      color: AppColors.primaryLight },
-  { maxHours: 14, id: 'metabolic-shift',  label: 'Metabolic Shift', color: AppColors.primaryMid },
-  { maxHours: Infinity, id: 'fat-burning', label: 'Fat Burning',    color: AppColors.primary },
+// Hours for each protocol
+export const PROTOCOL_HOURS: Record<FastingProtocol, number> = {
+  'circadian': 13,
+  '15:9':      15,
+  '16:8':      16,
+  '18:6':      18,
+  '20:4':      20,
+  'omad':      23,
+  '24h':       24,
+  '36h':       36,
+  '48h':       48,
+  '72h':       72,
+  '120h':      120,
+  '168h':      168,
+};
+
+// Body-state thresholds (elapsed hours → state)
+const BODY_STATE_THRESHOLDS: Array<{
+  minHours: number;
+  id: BodyStateId;
+  label: string;
+  description: string;
+  color: string;
+}> = [
+  { minHours: 0,   id: 'fed',             label: 'Fed State',       description: 'Body running on glucose from your last meal',       color: AppColors.gray },
+  { minHours: 4,   id: 'early-fast',      label: 'Early Fast',      description: 'Glycogen stores depleting, insulin falling',         color: AppColors.primaryMid },
+  { minHours: 12,  id: 'metabolic-shift', label: 'Metabolic Shift', description: 'Liver glycogen nearly depleted, fat mobilising',    color: '#7C3AED' },
+  { minHours: 16,  id: 'fat-burning',     label: 'Fat Burning',     description: 'Primary fuel switches to fatty acids',              color: AppColors.warning },
+  { minHours: 24,  id: 'ketosis',         label: 'Ketosis',         description: 'Ketone bodies rising, brain running on ketones',    color: '#EA580C' },
+  { minHours: 36,  id: 'deep-ketosis',    label: 'Deep Ketosis',    description: 'Autophagy accelerating, growth hormone elevated',  color: '#DC2626' },
+  { minHours: 48,  id: 'autophagy',       label: 'Autophagy Peak',  description: 'Peak cellular repair and immune regeneration',      color: '#9F1239' },
+  { minHours: 72,  id: 'reset',           label: 'Metabolic Reset', description: 'Deep cellular renewal, stem cell activation',       color: '#581C87' },
 ];
 
-const PROTOCOL_HOURS: Record<string, number> = {
-  '12:12': 12,
-  '14:10': 14,
-  '16:8':  16,
-};
-
-const XP_REWARDS: Record<string, number> = {
-  '12:12': 30,
-  '14:10': 50,
-  '16:8':  80,
-};
-
-export function getProtocolDurationMs(protocol: FastingProtocol, customHours?: number): number {
-  if (protocol === 'custom') {
-    return (customHours ?? 16) * HOUR_MS;
-  }
+export function getProtocolDurationMs(protocol: FastingProtocol): number {
   return (PROTOCOL_HOURS[protocol] ?? 16) * HOUR_MS;
 }
 
 export function getFastingStage(elapsedMs: number): FastingStage {
   const elapsedHours = elapsedMs / HOUR_MS;
-  for (const threshold of STAGE_THRESHOLDS) {
-    if (elapsedHours < threshold.maxHours) {
-      return { id: threshold.id, label: threshold.label, color: threshold.color };
-    }
+  let best = BODY_STATE_THRESHOLDS[0];
+  for (const threshold of BODY_STATE_THRESHOLDS) {
+    if (elapsedHours >= threshold.minHours) best = threshold;
+    else break;
   }
-  return STAGE_THRESHOLDS[STAGE_THRESHOLDS.length - 1];
+  return { id: best.id, label: best.label, description: best.description, color: best.color };
 }
 
 export function calculateElapsedMs(startTime: number, now?: number): number {
@@ -63,5 +75,20 @@ export function calculateProgress(startTime: number, targetDurationMs: number, n
 }
 
 export function calculateXpReward(protocol: FastingProtocol): number {
-  return XP_REWARDS[protocol] ?? 80;
+  const hours = PROTOCOL_HOURS[protocol] ?? 16;
+  // Base: 5 XP per hour, scaled with bonus for extended fasts
+  if (hours <= 16) return Math.round(hours * 5);
+  if (hours <= 24) return Math.round(hours * 6);
+  if (hours <= 48) return Math.round(hours * 8);
+  return Math.round(hours * 12);
+}
+
+export function needsElectrolytes(protocol: FastingProtocol): boolean {
+  const hours = PROTOCOL_HOURS[protocol] ?? 0;
+  return hours >= 36;
+}
+
+export function needsMedicalSupervision(protocol: FastingProtocol): boolean {
+  const hours = PROTOCOL_HOURS[protocol] ?? 0;
+  return hours >= 120;
 }

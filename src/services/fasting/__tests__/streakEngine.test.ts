@@ -98,15 +98,19 @@ describe('calcLevelFromXp', () => {
     expect(calcLevelFromXp(1500)).toBe(3);
   });
 
-  it('returns level 3 for 4999 XP', () => {
-    expect(calcLevelFromXp(4999)).toBe(3);
+  it('returns level 4 at 3000 XP', () => {
+    expect(calcLevelFromXp(3000)).toBe(4);
   });
 
-  it('returns level 4 at 5000 XP', () => {
-    expect(calcLevelFromXp(5000)).toBe(4);
+  it('returns level 4 for 5999 XP', () => {
+    expect(calcLevelFromXp(5999)).toBe(4);
   });
 
-  it('returns level 4 for very high XP', () => {
-    expect(calcLevelFromXp(99999)).toBe(4);
+  it('returns level 5 at 6000 XP', () => {
+    expect(calcLevelFromXp(6000)).toBe(5);
+  });
+
+  it('returns level 8 for very high XP', () => {
+    expect(calcLevelFromXp(99999)).toBe(8);
   });
 });
