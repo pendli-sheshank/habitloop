@@ -156,7 +156,7 @@ export async function loadLeaderboard(groupId: string): Promise<LeaderboardEntry
   try {
     const group = await loadGroup(groupId);
     if (!group) return [];
-    return sortLeaderboard(group.leaderboard);
+    return sortLeaderboard(group.leaderboard ?? []);
   } catch (e) {
     console.error('[groupService] loadLeaderboard failed:', e);
     return [];
@@ -226,7 +226,7 @@ export async function loadGroupMembers(
   date: string,
 ): Promise<GroupMember[]> {
   const results = await Promise.allSettled(
-    group.memberIds.map(async (uid): Promise<GroupMember> => {
+    (group.memberIds ?? []).map(async (uid): Promise<GroupMember> => {
       const snap = await getDoc(doc(db, 'users', uid, 'profile', 'data'));
       const data = snap.exists() ? snap.data() : {};
       return {

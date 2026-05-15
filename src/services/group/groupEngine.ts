@@ -43,24 +43,28 @@ export function challengeDayNumber(group: Group): number | null {
 // ─── Streak + freeze ──────────────────────────────────────────────────────────
 
 export function isStreakFrozen(group: Group, date: string): boolean {
-  return group.frozenDays.includes(date);
+  return (group.frozenDays ?? []).includes(date);
 }
 
 /**
  * True when every member checked in on the given date.
  */
 export function didAllMembersCheckIn(group: Group, date: string): boolean {
-  if (group.memberIds.length === 0) return false;
-  return group.memberIds.every(uid => group.checkIns[uid]?.[date] === true);
+  const memberIds = group.memberIds ?? [];
+  if (memberIds.length === 0) return false;
+  const checkIns = group.checkIns ?? {};
+  return memberIds.every(uid => checkIns[uid]?.[date] === true);
 }
 
 /**
  * Fraction of members who checked in on a given date (0–1).
  */
 export function getGroupCheckInRate(group: Group, date: string): number {
-  if (group.memberIds.length === 0) return 0;
-  const count = group.memberIds.filter(uid => group.checkIns[uid]?.[date] === true).length;
-  return count / group.memberIds.length;
+  const memberIds = group.memberIds ?? [];
+  if (memberIds.length === 0) return 0;
+  const checkIns = group.checkIns ?? {};
+  const count = memberIds.filter(uid => checkIns[uid]?.[date] === true).length;
+  return count / memberIds.length;
 }
 
 /**
@@ -76,7 +80,7 @@ export function getMemberCheckInStreak(group: Group, userId: string): number {
 
   // Start counting back from the later of today or endDate
   const countFrom = today > windowEnd ? windowEnd : today;
-  const memberCheckIns = group.checkIns[userId] ?? {};
+  const memberCheckIns = (group.checkIns ?? {})[userId] ?? {};
 
   let streak = 0;
   let cursor = countFrom;

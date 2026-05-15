@@ -8,8 +8,10 @@ import { formatTimerDisplay } from '@/utils/formatters';
 interface Props {
   remainingMs: number;
   elapsedMs: number;
+  overtimeMs: number;
   progress: number;
   isActive: boolean;
+  isComplete: boolean;
   stageLabel: string;
   stageColor: string;
   size?: number;
@@ -19,8 +21,10 @@ interface Props {
 export function FastingTimer({
   remainingMs,
   elapsedMs,
+  overtimeMs,
   progress,
   isActive,
+  isComplete,
   stageLabel,
   stageColor,
   size = 260,
@@ -32,7 +36,7 @@ export function FastingTimer({
   const center = size / 2;
 
   const displayTime = isActive
-    ? formatTimerDisplay(remainingMs)
+    ? (isComplete ? formatTimerDisplay(overtimeMs) : formatTimerDisplay(remainingMs))
     : '00:00:00';
 
   const elapsedTime = isActive
@@ -65,9 +69,11 @@ export function FastingTimer({
         />
       </Svg>
       <View style={[styles.labelContainer, { width: size, height: size }]}>
-        <Text style={styles.timer}>{displayTime}</Text>
+        <Text style={[styles.timer, isComplete && { color: AppColors.accent }]}>
+          {isComplete ? '+' : ''}{displayTime}
+        </Text>
         <Text style={styles.remainingLabel}>
-          {isActive ? 'remaining' : 'ready'}
+          {isActive ? (isComplete ? 'overtime' : 'remaining') : 'ready'}
         </Text>
         {isActive && (
           <Text style={[styles.stage, { color: stageColor }]}>
