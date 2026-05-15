@@ -10,6 +10,10 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
+      },
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Debug"
       }
     },
     "preview": {
@@ -17,6 +21,10 @@
       "credentialsSource": "remote",
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
       }
     },
     "production": {
@@ -24,6 +32,9 @@
       "credentialsSource": "remote",
       "android": {
         "buildType": "app-bundle"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
       }
     },
     "staging": {
@@ -32,6 +43,10 @@
       "credentialsSource": "remote",
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
       }
     }
   },
@@ -41,6 +56,11 @@
         "serviceAccountKeyPath": "./google-play-service-account.json",
         "track": "production",
         "releaseStatus": "draft"
+      },
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "YOUR_APPLE_TEAM_ID"
       }
     }
   }
